@@ -206,21 +206,21 @@ function analyzeFile(filePath, patterns) {
  */
 async function scanCommand() {
   try {
-    console.log(pc.cyan('🔍 herozion scan - Analyse de sécurité\n'));
+    console.log(pc.cyan('flash-dev scan - Analyse de sécurité\n'));
     
     const currentDir = process.cwd();
-    console.log(pc.yellow(`📂 Analyse du répertoire: ${currentDir}\n`));
+    console.log(pc.yellow(`Analyse du répertoire: ${currentDir}\n`));
     
     // Vérifier si c'est un projet valide
     const hasPackageJson = fs.existsSync(path.join(currentDir, 'package.json'));
     if (!hasPackageJson) {
-      console.log(pc.yellow('⚠️  Aucun fichier package.json détecté. Analyse des fichiers JS/TS...'));
+      console.log(pc.yellow('Aucun fichier package.json détecté. Analyse des fichiers JS/TS...'));
     }
     
     const allIssues = [];
     let fileCount = 0;
     
-    console.log(pc.yellow('🔎 Recherche des fichiers...'));
+    console.log(pc.yellow('Recherche des fichiers...'));
     
     // Parcourir tous les fichiers
     for (const filePath of walkDir(currentDir)) {
@@ -229,12 +229,12 @@ async function scanCommand() {
       allIssues.push(...issues);
     }
     
-    console.log(pc.green(`✅ ${fileCount} fichiers analysés\n`));
+    console.log(pc.green(`${fileCount} fichiers analysés\n`));
     
     // Afficher les résultats
     if (allIssues.length === 0) {
-      console.log(pc.green('🎉 Aucune vulnérabilité détectée!'));
-      console.log(pc.cyan('💡 Votre projet semble sécurisé.\n'));
+      console.log(pc.green('Aucune vulnérabilité détectée!'));
+      console.log(pc.cyan('Votre projet semble sécurisé.\n'));
     } else {
       // Grouper par sévérité
       const critical = allIssues.filter(i => i.severity === 'critical');
@@ -242,48 +242,48 @@ async function scanCommand() {
       const medium = allIssues.filter(i => i.severity === 'medium');
       const low = allIssues.filter(i => i.severity === 'low');
       
-      console.log(pc.red(`🚨 ${critical.length} vulnérabilités critiques trouvées`));
-      console.log(pc.yellow(`⚠️  ${high.length} vulnérabilités élevées trouvées`));
-      console.log(pc.yellow(`⚠️  ${medium.length} vulnérabilités moyennes trouvées`));
-      console.log(pc.cyan(`ℹ️  ${low.length} vulnérabilités faibles trouvées\n`));
+      console.log(pc.red(`${critical.length} vulnérabilités critiques trouvées`));
+      console.log(pc.yellow(`${high.length} vulnérabilités élevées trouvées`));
+      console.log(pc.yellow(`${medium.length} vulnérabilités moyennes trouvées`));
+      console.log(pc.cyan(`${low.length} vulnérabilités faibles trouvées\n`));
       
       // Afficher les détails
       const displayIssues = (issues, color) => {
         issues.forEach(issue => {
-          console.log(color(`📍 ${issue.file}:${issue.line}`));
+          console.log(color(`${issue.file}:${issue.line}`));
           console.log(color(`   ${issue.message}`));
-          console.log(pc.cyan(`   💡 ${issue.fix}\n`));
+          console.log(pc.cyan(`   ${issue.fix}\n`));
         });
       };
       
       if (critical.length > 0) {
-        console.log(pc.red('🔴 Vulnérabilités CRITIQUES:'));
+        console.log(pc.red('Vulnérabilités CRITIQUES:'));
         displayIssues(critical, pc.red);
       }
       
       if (high.length > 0) {
-        console.log(pc.yellow('🟠 Vulnérabilités ÉLEVÉES:'));
+        console.log(pc.yellow('Vulnérabilités ÉLEVÉES:'));
         displayIssues(high, pc.yellow);
       }
       
       if (medium.length > 0) {
-        console.log(pc.yellow('🟡 Vulnérabilités MOYENNES:'));
+        console.log(pc.yellow('Vulnérabilités MOYENNES:'));
         displayIssues(medium, pc.yellow);
       }
       
       if (low.length > 0) {
-        console.log(pc.cyan('🔵 Vulnérabilités FAIBLES:'));
+        console.log(pc.cyan('Vulnérabilités FAIBLES:'));
         displayIssues(low, pc.cyan);
       }
       
-      console.log(pc.cyan('💡 Exécutez "herozion scan" après corrections pour vérifier.\n'));
+      console.log(pc.cyan('Exécutez "flash-dev scan" après corrections pour vérifier.\n'));
     }
     
     // Message éthique de monétisation
     displayEthicalMonetization();
     
   } catch (error) {
-    console.log(pc.red(`\n❌ Erreur lors de l'analyse: ${error.message}\n`));
+    console.log(pc.red(`\nErreur lors de l'analyse: ${error.message}\n`));
     process.exit(1);
   }
 }

@@ -35,13 +35,13 @@ program
 
 // Commande par défaut si aucune sous-commande n'est fournie
 program.action(() => {
-  console.log(pc.cyan('🚀 flash-dev - Automatisation Git intelligente & Sécurité\n'));
+  console.log(pc.cyan('flash-dev - Automatisation Git intelligente & Sécurité\n'));
   console.log(pc.white('Commandes disponibles:'));
   console.log(pc.green('  flash-dev push   ') + pc.white('Automatise le workflow Git (add + commit IA + push)'));
   console.log(pc.green('  flash-dev scan   ') + pc.white('Analyse la sécurité du projet'));
   console.log(pc.green('  flash-dev status ') + pc.white('Affiche l\'état et la version du CLI'));
   console.log(pc.green('  flash-dev --help ') + pc.white('Affiche l\'aide\n'));
-  console.log(pc.cyan('💡 Commencez avec: flash-dev push ou flash-dev scan\n'));
+  console.log(pc.cyan('Commencez avec: flash-dev push ou flash-dev scan\n'));
 });
 
 program.parse(process.argv);

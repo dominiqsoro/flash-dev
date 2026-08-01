@@ -1,45 +1,85 @@
-# flash-dev
+<div align="center">
+
+# Flash-Dev
+
+**Intelligent CLI automation tool for developers — 100% Free & Open-Source**
+**Outil CLI intelligent d'automatisation pour développeurs — 100 % gratuit et open-source**
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![NPM Version](https://img.shields.io/npm/v/flash-dev.svg)](https://www.npmjs.com/package/flash-dev)
 [![Node.js Version](https://img.shields.io/node/v/flash-dev.svg)](https://www.npmjs.com/package/flash-dev)
 [![Downloads](https://img.shields.io/npm/dw/flash-dev.svg)](https://www.npmjs.com/package/flash-dev)
 
-**Intelligent CLI automation tool for developers - 100% Free & Open-Source**
+<a href="#english"><strong>English</strong></a>
+&nbsp;·&nbsp;
+<a href="#francais"><strong>Français</strong></a>
 
-Flash-dev automates your Git workflow in a single command: `git add` + `AI-powered commit` + `git push`. No need to leave the terminal or use the mouse!
+</div>
 
-## Features
+<br />
 
-- **Git Automation** - Single command for add, commit and push
-- **AI-Powered Commits** - Uses Gemini 2.5 Flash to generate Conventional Commits (optional)
-- **Basic Mode** - Works without AI with simple message generation
-- **Security Scan** - Detects vulnerabilities in your code
-- **Secret Audit** - Prevents accidental secret leaks before commit
-- **Environment Generator** - Creates secure .env.example files
-- **Disk Cleanup** - Frees space by cleaning caches and old projects
-- **Branch Sync** - Synchronize with main branch automatically
-- **Branch Cleanup** - Remove merged local branches safely
-- **Maximum Security** - BYOK (Bring Your Own Key) architecture - zero remote key storage
-- **User Validation** - Interactive confirmation before each commit
-- **Easy Installation** - Available on NPM with `npm install -g flash-dev`
-- **Open Source** - Completely free and transparent code
+---
 
-## Requirements
+<a name="english"></a>
+## English
 
-- **Node.js** (Version LTS >= 18.0.0)
-- **Git** installed and configured
-- A **Google Gemini API key** (free, but optional - works without it)
+Flash-dev automates your Git workflow in a single command: `git add` + AI-powered commit + `git push`. No need to leave the terminal or touch the mouse.
 
-## Installation
+<details>
+<summary><strong>Table of contents</strong></summary>
 
-### Global Installation via NPM
+- [Features](#en-features)
+- [Requirements](#en-requirements)
+- [Installation](#en-installation)
+- [Getting a Gemini API Key](#en-api-key)
+- [Usage](#en-usage)
+- [Example Commit Messages](#en-commit-messages)
+- [Security and Privacy](#en-security)
+- [Advanced Configuration](#en-advanced-config)
+- [Contributing](#en-contributing)
+- [License](#en-license)
+- [Support the Project](#en-support-project)
+- [Support](#en-support)
+- [Roadmap](#en-roadmap)
+
+</details>
+
+<a name="en-features"></a>
+### Features
+
+| Feature | Description |
+|---|---|
+| Git Automation | Single command for add, commit, and push |
+| AI-Powered Commits | Uses Gemini 2.5 Flash to generate Conventional Commits messages (optional) |
+| Basic Mode | Works without AI, using simple message generation |
+| Security Scan | Detects vulnerabilities in your code |
+| Secret Audit | Prevents accidental secret leaks before a commit |
+| Environment Generator | Creates secure `.env.example` files |
+| Disk Cleanup | Frees up space by cleaning caches and old projects |
+| Branch Sync | Synchronizes automatically with the main branch |
+| Branch Cleanup | Safely removes merged local branches |
+| Maximum Security | BYOK (Bring Your Own Key) architecture — zero remote key storage |
+| User Validation | Interactive confirmation before every commit |
+| Easy Installation | Available on NPM via `npm install -g flash-dev` |
+| Open Source | Completely free and transparent code |
+
+<a name="en-requirements"></a>
+### Requirements
+
+- **Node.js** — version LTS >= 18.0.0
+- **Git** — installed and configured
+- A **Google Gemini API key** — free, but optional; flash-dev also works without one
+
+<a name="en-installation"></a>
+### Installation
+
+**Global installation via NPM**
 
 ```bash
 npm install -g flash-dev
 ```
 
-### Local Development
+**Local development**
 
 ```bash
 # Clone the repository
@@ -49,24 +89,37 @@ cd flash-dev
 # Install dependencies
 npm install
 
-# Link package locally
+# Link the package locally
 npm link
 ```
 
-## Getting a Gemini API Key
+<a name="en-api-key"></a>
+### Getting a Gemini API Key
 
-Flash-dev uses the **Gemini 2.5 Flash** model from Google to generate intelligent commit messages. Here's how to get your API key for free:
+Flash-dev uses Google's **Gemini 2.5 Flash** model to generate intelligent commit messages. To get a free key:
 
 1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
 2. Sign in with your Google account
 3. Click "Create API Key"
 4. Copy your API key
 
-**Important**: Your API key is stored **only locally** on your machine. It is never sent to our servers.
+> **Important** — Your API key is stored **only locally** on your machine. It is never sent to our servers.
 
-## Usage
+<a name="en-usage"></a>
+### Usage
 
-### Main Command: `flash-dev push`
+| Command | Description |
+|---|---|
+| `flash-dev push` | Stages, commits (AI-assisted or basic), and pushes your changes |
+| `flash-dev scan` | Scans the project for security vulnerabilities |
+| `flash-dev env` | Generates a sanitized `.env.example` from your local `.env` |
+| `flash-dev secure` | Audits staged changes for secrets before committing |
+| `flash-dev clean` | Cleans development caches and old project directories |
+| `flash-dev sync` | Synchronizes your working branch with main |
+| `flash-dev nuke` | Removes merged local branches |
+| `flash-dev status` | Displays system status and version |
+
+#### Main command: `flash-dev push`
 
 Automates the complete Git workflow:
 
@@ -74,130 +127,111 @@ Automates the complete Git workflow:
 flash-dev push
 ```
 
-**What the command does:**
+1. **Check** — verifies the folder is a valid Git repository
+2. **Index** — runs `git add .` to stage all files
+3. **Capture** — captures the changes via `git diff --cached`
+4. **Generate** — sends the diff to Gemini to generate a Conventional Commits message (if an API key is configured)
+5. **Validate** — displays the generated message and asks for confirmation
+6. **Commit** — runs `git commit` with the validated message
+7. **Push** — automatically detects the branch and runs `git push`
 
-1. **Check** - Verifies the folder is a valid Git repository
-2. **Index** - Executes `git add .` to stage all files
-3. **Capture** - Captures changes via `git diff --cached`
-4. **Generate** - Sends diff to Gemini to generate a Conventional Commits message (if API key configured)
-5. **Validate** - Displays generated message and asks for confirmation
-6. **Commit** - Executes `git commit` with validated message
-7. **Push** - Automatically detects branch and does `git push`
-
-### Security Analysis: `flash-dev scan`
-
-Analyzes your project to detect security vulnerabilities:
+#### Security analysis: `flash-dev scan`
 
 ```bash
 flash-dev scan
 ```
 
-**What the command detects:**
+Detects:
 
-- **API Keys** - Exposed API keys in code
-- **URLs** - Hardcoded URLs
-- **Debug** - Debug statements (console.log, debugger)
-- **SQL** - SQL injection patterns
-- **Eval** - Dangerous eval/exec usage
-- **Dependencies** - Known vulnerable dependencies
+- **API keys** exposed in code
+- **URLs** hardcoded in the codebase
+- **Debug** statements (`console.log`, `debugger`)
+- **SQL** injection patterns
+- **Eval** — dangerous `eval`/`exec` usage
+- **Dependencies** with known vulnerabilities
 
-### Environment Example: `flash-dev env`
-
-Generate a secure `.env.example` file from your local `.env`:
+#### Environment example: `flash-dev env`
 
 ```bash
 flash-dev env
 ```
-
-**What the command does:**
 
 - **Reads** your local `.env` file
 - **Filters** structural configuration variables
 - **Sanitizes** sensitive values (API keys, passwords, tokens)
 - **Generates** a clean `.env.example` for your team
 
-### Security Audit: `flash-dev secure`
-
-Audit your staged changes for secrets before committing:
+#### Security audit: `flash-dev secure`
 
 ```bash
 flash-dev secure
 ```
 
-**What the command detects:**
+Detects:
 
-- **SSH Private Keys**
-- **AWS Access/Secret Keys**
-- **Stripe API Keys**
-- **Google API Keys**
-- **GitHub Tokens**
-- **JWT Tokens**
-- **Database Passwords**
-- **Generic API/Secret Keys**
+- SSH private keys
+- AWS access/secret keys
+- Stripe API keys
+- Google API keys
+- GitHub tokens
+- JWT tokens
+- Database passwords
+- Generic API/secret keys
 
-### Disk Cleanup: `flash-dev clean`
-
-Free disk space by cleaning development caches and old project directories:
+#### Disk cleanup: `flash-dev clean`
 
 ```bash
 flash-dev clean
 ```
 
-**What the command cleans:**
+Cleans:
 
-- **node_modules** directories
-- **Build caches** (.next, .nuxt, dist, build)
-- **Package manager caches**
-- **Old projects** (not modified in 3 months)
+- `node_modules` directories
+- Build caches (`.next`, `.nuxt`, `dist`, `build`)
+- Package manager caches
+- Old projects (not modified in 3 months)
 
-### Branch Synchronization: `flash-dev sync`
-
-Synchronize your working branch with the main branch:
+#### Branch synchronization: `flash-dev sync`
 
 ```bash
 flash-dev sync
 ```
 
-**What the command does:**
+- **Stashes** your local changes
+- **Switches** to the main branch and pulls the latest changes
+- **Returns** to your working branch
+- **Rebases** your branch on main
+- **Restores** your local changes
 
-- **Stash** your local changes
-- **Switch** to main branch and pull latest changes
-- **Return** to your working branch
-- **Rebase** your branch on main
-- **Restore** your local changes
-
-### Branch Cleanup: `flash-dev nuke`
-
-Clean up all merged local branches:
+#### Branch cleanup: `flash-dev nuke`
 
 ```bash
 flash-dev nuke
 ```
 
-**What the command cleans:**
-
 - **Lists** all merged local branches
-- **Excludes** protected branches (main, master, dev, develop)
+- **Excludes** protected branches (`main`, `master`, `dev`, `develop`)
 - **Deletes** obsolete branches safely
-- **Frees** your local Git history
+- **Frees** up your local Git history
 
-### Check Status: `flash-dev status`
-
-Displays system status and version:
+#### Check status: `flash-dev status`
 
 ```bash
 flash-dev status
 ```
 
-### Help
+Displays system status and version.
+
+#### Help
 
 ```bash
 flash-dev --help
 ```
 
-## Example Commit Messages
+<a name="en-commit-messages"></a>
+### Example Commit Messages
 
-The AI generates messages following **Conventional Commits**:
+The AI generates messages that follow **Conventional Commits**:
 
 - `feat(ui): add navbar component`
 - `fix(auth): resolve login timeout issue`
@@ -211,25 +245,26 @@ The AI generates messages following **Conventional Commits**:
 - `fix(general): update 1 file`
 - `docs(docs): add 1 file`
 
-## Security & Privacy
+<a name="en-security"></a>
+### Security and Privacy
 
-### Security Architecture
+**Security architecture**
 
-- **Zero Remote Storage** - API keys are never stored on our servers
-- **Direct Transfer** - Data flows directly from your machine to Google's secure API
-- **Local Permissions** - Configuration file restricted to your system user permissions
-- **Automatic Filtering** - Binary and large files are automatically excluded from diff sent to AI
+- **Zero remote storage** — API keys are never stored on our servers
+- **Direct transfer** — data flows directly from your machine to Google's secure API
+- **Local permissions** — the configuration file is restricted to your system user's permissions
+- **Automatic filtering** — binary and large files are automatically excluded from the diff sent to the AI
 
-### API Key Management
+**API key management**
 
-**Source Priority:**
+Source priority:
+
 1. Environment variable `GEMINI_API_KEY`
-2. Local configuration file (~/.flash-dev/config.json)
+2. Local configuration file (`~/.flash-dev/config.json`)
 
-**First Launch:**
-If no key is detected, flash-dev prompts you to configure an API key or use basic mode.
+If no key is detected on first launch, flash-dev prompts you to configure one or to continue in basic mode.
 
-**To configure key via environment variable:**
+To configure the key via an environment variable:
 
 ```bash
 # Linux/Mac
@@ -242,59 +277,386 @@ $env:GEMINI_API_KEY="your_key_here"
 set GEMINI_API_KEY=your_key_here
 ```
 
-## Advanced Configuration
+<a name="en-advanced-config"></a>
+### Advanced Configuration
 
-### Token Limit
+**Token limit** — the diff sent to the AI is automatically truncated to **4,000 characters** to avoid exceeding API limits.
 
-The diff sent to AI is automatically truncated to **4,000 characters** to avoid API limit overruns.
+**Automatically excluded files:**
 
-### Automatically Excluded Files
-
-The following files are automatically excluded from diff:
 - Binary files
 - `package-lock.json`
 - `yarn.lock`
 - `.min.js` and `.min.css` files
 
-## Contributing
+<a name="en-contributing"></a>
+### Contributing
 
-Flash-dev is an open-source project! Contributions are welcome:
+Flash-dev is an open-source project — contributions are welcome:
 
 1. Fork the project
 2. Create a branch for your feature (`git checkout -b feature/AmazingFeature`)
 3. Commit your changes (`flash-dev push`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request on [dominiqsoro/flash-dev](https://github.com/dominiqsoro/flash-dev)
 
-## License
+<a name="en-license"></a>
+### License
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 — see the [LICENSE](LICENSE) file for details.
 
-## Support the Project
+<a name="en-support-project"></a>
+### Support the Project
 
-Flash-dev is **100% free** thanks to the BYOK model. If the tool saves you time, consider:
+Flash-dev is **100% free**, thanks to the BYOK model. If the tool saves you time, consider:
 
-- **Star** - Give a star on GitHub: [dominiqsoro/flash-dev](https://github.com/dominiqsoro/flash-dev)
-- **Coffee** - Buy me a coffee on Ko-fi: [dominiqsoro](https://ko-fi.com/dominiqsoro)
-- **Support** - Support on Buy Me a Coffee: [dominiqsoro](https://www.buymeacoffee.com/dominiqsoro)
-- **Report** - Report bugs or suggest features
+- **Star** the repository on GitHub: [dominiqsoro/flash-dev](https://github.com/dominiqsoro/flash-dev)
+- **Buy a coffee** on Ko-fi: [dominiqsoro](https://ko-fi.com/dominiqsoro)
+- **Support** on Buy Me a Coffee: [dominiqsoro](https://www.buymeacoffee.com/dominiqsoro)
+- **Report** bugs or suggest features
 
-## Support
+<a name="en-support"></a>
+### Support
 
-- **Issues** - [GitHub Issues](https://github.com/dominiqsoro/flash-dev/issues)
-- **Documentation** - [README.md](https://github.com/dominiqsoro/flash-dev#readme)
-- **Developer** - [dominiqsoro](https://github.com/dominiqsoro)
+- **Issues** — [GitHub Issues](https://github.com/dominiqsoro/flash-dev/issues)
+- **Documentation** — [README.md](https://github.com/dominiqsoro/flash-dev#readme)
+- **Developer** — [dominiqsoro](https://github.com/dominiqsoro)
 
-## Roadmap
+<a name="en-roadmap"></a>
+### Roadmap
 
 - [x] Basic mode without AI
 - [x] Integrated security scan
-- [ ] Command `flash-dev clean` for local branch cleanup
-- [ ] Command `flash-dev deploy` for deployment automation
+- [ ] `flash-dev clean` command for local branch cleanup
+- [ ] `flash-dev deploy` command for deployment automation
 - [ ] Multi-model AI support (OpenAI, Anthropic, etc.)
 - [ ] Customizable prompt configuration
 - [ ] Advanced interactive mode with file selection
 
+<div align="right"><a href="#flash-dev">Back to top</a></div>
+
 ---
 
+<a name="francais"></a>
+## Français
+
+Flash-dev automatise votre workflow Git en une seule commande : `git add` + commit propulsé par IA + `git push`. Plus besoin de quitter le terminal ni de toucher la souris.
+
+<details>
+<summary><strong>Table des matières</strong></summary>
+
+- [Fonctionnalités](#fr-features)
+- [Prérequis](#fr-requirements)
+- [Installation](#fr-installation)
+- [Obtenir une clé API Gemini](#fr-api-key)
+- [Utilisation](#fr-usage)
+- [Exemples de messages de commit](#fr-commit-messages)
+- [Sécurité et confidentialité](#fr-security)
+- [Configuration avancée](#fr-advanced-config)
+- [Contribuer](#fr-contributing)
+- [Licence](#fr-license)
+- [Soutenir le projet](#fr-support-project)
+- [Assistance](#fr-support)
+- [Feuille de route](#fr-roadmap)
+
+</details>
+
+<a name="fr-features"></a>
+### Fonctionnalités
+
+| Fonctionnalité | Description |
+|---|---|
+| Automatisation Git | Une seule commande pour add, commit et push |
+| Commits propulsés par IA | Utilise Gemini 2.5 Flash pour générer des messages Conventional Commits (optionnel) |
+| Mode basique | Fonctionne sans IA, avec une génération de message simple |
+| Scan de sécurité | Détecte les vulnérabilités dans votre code |
+| Audit des secrets | Empêche les fuites accidentelles de secrets avant un commit |
+| Générateur d'environnement | Crée des fichiers `.env.example` sécurisés |
+| Nettoyage du disque | Libère de l'espace en nettoyant les caches et les anciens projets |
+| Synchronisation de branche | Se synchronise automatiquement avec la branche principale |
+| Nettoyage des branches | Supprime en toute sécurité les branches locales fusionnées |
+| Sécurité maximale | Architecture BYOK (Bring Your Own Key) — aucun stockage de clé à distance |
+| Validation utilisateur | Confirmation interactive avant chaque commit |
+| Installation simplifiée | Disponible sur NPM via `npm install -g flash-dev` |
+| Open Source | Code entièrement gratuit et transparent |
+
+<a name="fr-requirements"></a>
+### Prérequis
+
+- **Node.js** — version LTS >= 18.0.0
+- **Git** — installé et configuré
+- Une **clé API Google Gemini** — gratuite, mais facultative ; flash-dev fonctionne aussi sans elle
+
+<a name="fr-installation"></a>
+### Installation
+
+**Installation globale via NPM**
+
+```bash
+npm install -g flash-dev
+```
+
+**Développement local**
+
+```bash
+# Cloner le dépôt
+git clone https://github.com/dominiqsoro/flash-dev.git
+cd flash-dev
+
+# Installer les dépendances
+npm install
+
+# Lier le package localement
+npm link
+```
+
+<a name="fr-api-key"></a>
+### Obtenir une clé API Gemini
+
+Flash-dev utilise le modèle **Gemini 2.5 Flash** de Google pour générer des messages de commit intelligents. Pour obtenir une clé gratuite :
+
+1. Rendez-vous sur [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Connectez-vous avec votre compte Google
+3. Cliquez sur "Create API Key"
+4. Copiez votre clé API
+
+> **Important** — Votre clé API est stockée **uniquement en local** sur votre machine. Elle n'est jamais envoyée à nos serveurs.
+
+<a name="fr-usage"></a>
+### Utilisation
+
+| Commande | Description |
+|---|---|
+| `flash-dev push` | Indexe, commit (via IA ou en mode basique) et pousse vos changements |
+| `flash-dev scan` | Analyse le projet à la recherche de vulnérabilités de sécurité |
+| `flash-dev env` | Génère un `.env.example` assaini à partir de votre `.env` local |
+| `flash-dev secure` | Audite les changements indexés à la recherche de secrets avant un commit |
+| `flash-dev clean` | Nettoie les caches de développement et les anciens répertoires de projets |
+| `flash-dev sync` | Synchronise votre branche de travail avec main |
+| `flash-dev nuke` | Supprime les branches locales fusionnées |
+| `flash-dev status` | Affiche le statut du système et la version |
+
+#### Commande principale : `flash-dev push`
+
+Automatise l'intégralité du workflow Git :
+
+```bash
+flash-dev push
+```
+
+1. **Vérification** — vérifie que le dossier est un dépôt Git valide
+2. **Indexation** — exécute `git add .` pour indexer tous les fichiers
+3. **Capture** — capture les changements via `git diff --cached`
+4. **Génération** — envoie le diff à Gemini pour générer un message Conventional Commits (si une clé API est configurée)
+5. **Validation** — affiche le message généré et demande une confirmation
+6. **Commit** — exécute `git commit` avec le message validé
+7. **Push** — détecte automatiquement la branche et exécute `git push`
+
+#### Analyse de sécurité : `flash-dev scan`
+
+```bash
+flash-dev scan
+```
+
+Détecte :
+
+- Les **clés API** exposées dans le code
+- Les **URLs** codées en dur
+- Les instructions de **débogage** (`console.log`, `debugger`)
+- Les schémas d'**injection SQL**
+- Les usages dangereux d'**eval**/exec
+- Les **dépendances** avec des vulnérabilités connues
+
+#### Exemple d'environnement : `flash-dev env`
+
+```bash
+flash-dev env
+```
+
+- **Lit** votre fichier `.env` local
+- **Filtre** les variables de configuration structurelles
+- **Assainit** les valeurs sensibles (clés API, mots de passe, tokens)
+- **Génère** un `.env.example` propre pour votre équipe
+
+#### Audit de sécurité : `flash-dev secure`
+
+```bash
+flash-dev secure
+```
+
+Détecte :
+
+- Les clés privées SSH
+- Les clés d'accès/secrètes AWS
+- Les clés API Stripe
+- Les clés API Google
+- Les tokens GitHub
+- Les tokens JWT
+- Les mots de passe de base de données
+- Les clés API/secrètes génériques
+
+#### Nettoyage du disque : `flash-dev clean`
+
+```bash
+flash-dev clean
+```
+
+Nettoie :
+
+- Les répertoires `node_modules`
+- Les caches de build (`.next`, `.nuxt`, `dist`, `build`)
+- Les caches des gestionnaires de paquets
+- Les anciens projets (non modifiés depuis 3 mois)
+
+#### Synchronisation de branche : `flash-dev sync`
+
+```bash
+flash-dev sync
+```
+
+- **Met de côté** (stash) vos changements locaux
+- **Bascule** sur la branche main et récupère les derniers changements
+- **Revient** sur votre branche de travail
+- **Rebase** votre branche sur main
+- **Restaure** vos changements locaux
+
+#### Nettoyage des branches : `flash-dev nuke`
+
+```bash
+flash-dev nuke
+```
+
+- **Liste** toutes les branches locales fusionnées
+- **Exclut** les branches protégées (`main`, `master`, `dev`, `develop`)
+- **Supprime** les branches obsolètes en toute sécurité
+- **Libère** votre historique Git local
+
+#### Vérifier le statut : `flash-dev status`
+
+```bash
+flash-dev status
+```
+
+Affiche le statut du système et la version.
+
+#### Aide
+
+```bash
+flash-dev --help
+```
+
+<a name="fr-commit-messages"></a>
+### Exemples de messages de commit
+
+L'IA génère des messages qui suivent la convention **Conventional Commits** :
+
+- `feat(ui): add navbar component`
+- `fix(auth): resolve login timeout issue`
+- `docs(readme): update installation guide`
+- `refactor(api): simplify user endpoint`
+- `test(utils): add unit tests for parser`
+
+**Mode basique (sans IA) :**
+
+- `feat(core): add 2 files`
+- `fix(general): update 1 file`
+- `docs(docs): add 1 file`
+
+<a name="fr-security"></a>
+### Sécurité et confidentialité
+
+**Architecture de sécurité**
+
+- **Aucun stockage à distance** — les clés API ne sont jamais stockées sur nos serveurs
+- **Transfert direct** — les données circulent directement de votre machine vers l'API sécurisée de Google
+- **Permissions locales** — le fichier de configuration est restreint aux permissions de votre utilisateur système
+- **Filtrage automatique** — les fichiers binaires et volumineux sont automatiquement exclus du diff envoyé à l'IA
+
+**Gestion de la clé API**
+
+Ordre de priorité des sources :
+
+1. Variable d'environnement `GEMINI_API_KEY`
+2. Fichier de configuration local (`~/.flash-dev/config.json`)
+
+Si aucune clé n'est détectée au premier lancement, flash-dev vous invite à en configurer une ou à continuer en mode basique.
+
+Pour configurer la clé via une variable d'environnement :
+
+```bash
+# Linux/Mac
+export GEMINI_API_KEY="votre_cle_ici"
+
+# Windows (PowerShell)
+$env:GEMINI_API_KEY="votre_cle_ici"
+
+# Windows (CMD)
+set GEMINI_API_KEY=votre_cle_ici
+```
+
+<a name="fr-advanced-config"></a>
+### Configuration avancée
+
+**Limite de tokens** — le diff envoyé à l'IA est automatiquement tronqué à **4 000 caractères** pour éviter de dépasser les limites de l'API.
+
+**Fichiers automatiquement exclus :**
+
+- Les fichiers binaires
+- `package-lock.json`
+- `yarn.lock`
+- Les fichiers `.min.js` et `.min.css`
+
+<a name="fr-contributing"></a>
+### Contribuer
+
+Flash-dev est un projet open-source, les contributions sont les bienvenues :
+
+1. Forkez le projet
+2. Créez une branche pour votre fonctionnalité (`git checkout -b feature/AmazingFeature`)
+3. Committez vos changements (`flash-dev push`)
+4. Poussez vers la branche (`git push origin feature/AmazingFeature`)
+5. Ouvrez une Pull Request sur [dominiqsoro/flash-dev](https://github.com/dominiqsoro/flash-dev)
+
+<a name="fr-license"></a>
+### Licence
+
+Ce projet est distribué sous licence GNU General Public License v3.0 — voir le fichier [LICENSE](LICENSE) pour plus de détails.
+
+<a name="fr-support-project"></a>
+### Soutenir le projet
+
+Flash-dev est **100 % gratuit**, grâce au modèle BYOK. Si l'outil vous fait gagner du temps, vous pouvez :
+
+- **Star** le dépôt sur GitHub : [dominiqsoro/flash-dev](https://github.com/dominiqsoro/flash-dev)
+- **Offrir un café** sur Ko-fi : [dominiqsoro](https://ko-fi.com/dominiqsoro)
+- **Soutenir** sur Buy Me a Coffee : [dominiqsoro](https://www.buymeacoffee.com/dominiqsoro)
+- **Signaler** des bugs ou proposer des fonctionnalités
+
+<a name="fr-support"></a>
+### Assistance
+
+- **Issues** — [GitHub Issues](https://github.com/dominiqsoro/flash-dev/issues)
+- **Documentation** — [README.md](https://github.com/dominiqsoro/flash-dev#readme)
+- **Développeur** — [dominiqsoro](https://github.com/dominiqsoro)
+
+<a name="fr-roadmap"></a>
+### Feuille de route
+
+- [x] Mode basique sans IA
+- [x] Scan de sécurité intégré
+- [ ] Commande `flash-dev clean` pour le nettoyage des branches locales
+- [ ] Commande `flash-dev deploy` pour l'automatisation du déploiement
+- [ ] Support multi-modèles IA (OpenAI, Anthropic, etc.)
+- [ ] Configuration de prompt personnalisable
+- [ ] Mode interactif avancé avec sélection de fichiers
+
+<div align="right"><a href="#flash-dev">Back to top / Haut de page</a></div>
+
+---
+
+<div align="center">
+
 **Developed with passion for developers, by developers**
+**Développé avec passion pour les développeurs, par des développeurs**
+
+</div>

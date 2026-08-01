@@ -1,0 +1,54 @@
+{
+  "name": "flash-dev",
+  "version": "1.0.0",
+  "description": "Boîte à outils d'automatisation intelligente en ligne de commande (CLI) pour développeurs — 100% Gratuit & Open-Source",
+  "main": "index.js",
+  "bin": {
+    "flash-dev": "bin/index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dominiqsoro/flash-dev.git"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "keywords": [
+    "git",
+    "cli",
+    "automation",
+    "ai",
+    "gemini",
+    "commit",
+    "push",
+    "security",
+    "scan",
+    "developer-tools"
+  ],
+  "author": "dominiqsoro",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/dominiqsoro/flash-dev/issues"
+  },
+  "homepage": "https://github.com/dominiqsoro/flash-dev#readme",
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@google/genai": "^0.6.0",
+    "commander": "^12.1.0",
+    "picocolors": "^1.1.1",
+    "prompts": "^2.4.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -8,14 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2026-08-01
 
 ### Added
-- ⚡ **Git automation** - Single command workflow (add + commit + push)
-- 🤖 **AI-powered commit messages** - Integration with Gemini 2.5 Flash for Conventional Commits
-- 🔄 **Basic mode** - Fallback without AI for local commit message generation
-- 🔍 **Security scan** - Vulnerability detection for API keys, hardcoded URLs, debug statements, SQL injection patterns, and vulnerable dependencies
-- 🔒 **BYOK architecture** - Bring Your Own Key with zero remote storage
-- 🎯 **User validation** - Interactive confirmation before commits
-- 💜 **Ethical monetization** - Discrete sponsor messages (30% support, 20% ads, 50% silence)
-- 📦 **NPM-ready** - Global installation via `npm install -g flash-dev`
+- **Git automation** - Single command workflow (add + commit + push)
+- **AI-powered commit messages** - Integration with Gemini 2.5 Flash for Conventional Commits
+- **Basic mode** - Fallback without AI for local commit message generation
+- **Security scan** - Vulnerability detection for API keys, hardcoded URLs, debug statements, SQL injection patterns, and vulnerable dependencies
+- **BYOK architecture** - Bring Your Own Key with zero remote storage
+- **User validation** - Interactive confirmation before commits
+- **Ethical monetization** - Discrete sponsor messages (30% support, 20% ads, 50% silence)
+- **NPM-ready** - Global installation via `npm install -g flash-dev`
 
 ### Features
 - Multi-language support (English commit messages, French CLI interface)
@@ -53,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Technical Details
 - Node.js >= 18.0.0 required
 - Dependencies: @google/genai, commander, picocolors, prompts
-- ISC License
+- GPL-3.0 License
 - GitHub repository: https://github.com/dominiqsoro/flash-dev
 
 ---

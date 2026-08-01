@@ -29,7 +29,7 @@
     "developer-tools"
   ],
   "author": "dominiqsoro",
-  "license": "ISC",
+  "license": "GPL-3.0",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/dominiqsoro/flash-dev/issues"

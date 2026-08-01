@@ -15,6 +15,11 @@ Flash-dev automates your Git workflow in a single command: `git add` + `AI-power
 - **AI-Powered Commits** - Uses Gemini 2.5 Flash to generate Conventional Commits (optional)
 - **Basic Mode** - Works without AI with simple message generation
 - **Security Scan** - Detects vulnerabilities in your code
+- **Secret Audit** - Prevents accidental secret leaks before commit
+- **Environment Generator** - Creates secure .env.example files
+- **Disk Cleanup** - Frees space by cleaning caches and old projects
+- **Branch Sync** - Synchronize with main branch automatically
+- **Branch Cleanup** - Remove merged local branches safely
 - **Maximum Security** - BYOK (Bring Your Own Key) architecture - zero remote key storage
 - **User Validation** - Interactive confirmation before each commit
 - **Easy Installation** - Available on NPM with `npm install -g flash-dev`
@@ -95,6 +100,86 @@ flash-dev scan
 - **SQL** - SQL injection patterns
 - **Eval** - Dangerous eval/exec usage
 - **Dependencies** - Known vulnerable dependencies
+
+### Environment Example: `flash-dev env`
+
+Generate a secure `.env.example` file from your local `.env`:
+
+```bash
+flash-dev env
+```
+
+**What the command does:**
+
+- **Reads** your local `.env` file
+- **Filters** structural configuration variables
+- **Sanitizes** sensitive values (API keys, passwords, tokens)
+- **Generates** a clean `.env.example` for your team
+
+### Security Audit: `flash-dev secure`
+
+Audit your staged changes for secrets before committing:
+
+```bash
+flash-dev secure
+```
+
+**What the command detects:**
+
+- **SSH Private Keys**
+- **AWS Access/Secret Keys**
+- **Stripe API Keys**
+- **Google API Keys**
+- **GitHub Tokens**
+- **JWT Tokens**
+- **Database Passwords**
+- **Generic API/Secret Keys**
+
+### Disk Cleanup: `flash-dev clean`
+
+Free disk space by cleaning development caches and old project directories:
+
+```bash
+flash-dev clean
+```
+
+**What the command cleans:**
+
+- **node_modules** directories
+- **Build caches** (.next, .nuxt, dist, build)
+- **Package manager caches**
+- **Old projects** (not modified in 3 months)
+
+### Branch Synchronization: `flash-dev sync`
+
+Synchronize your working branch with the main branch:
+
+```bash
+flash-dev sync
+```
+
+**What the command does:**
+
+- **Stash** your local changes
+- **Switch** to main branch and pull latest changes
+- **Return** to your working branch
+- **Rebase** your branch on main
+- **Restore** your local changes
+
+### Branch Cleanup: `flash-dev nuke`
+
+Clean up all merged local branches:
+
+```bash
+flash-dev nuke
+```
+
+**What the command cleans:**
+
+- **Lists** all merged local branches
+- **Excludes** protected branches (main, master, dev, develop)
+- **Deletes** obsolete branches safely
+- **Frees** your local Git history
 
 ### Check Status: `flash-dev status`
 

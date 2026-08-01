@@ -2,7 +2,7 @@ const pc = require('picocolors');
 const { getApiKey } = require('../utils/config');
 const { isGitRepository, getCurrentBranch } = require('../utils/git');
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 
 /**
  * Affiche l'état et la version du CLI

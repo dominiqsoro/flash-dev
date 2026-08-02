@@ -1,4 +1,4 @@
-const { GoogleGenerativeAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const pc = require('picocolors');
 
 const MAX_DIFF_LENGTH = 4000;
@@ -59,8 +59,6 @@ function filterDiff(diff) {
  */
 async function generateCommitMessage(client, diff) {
   try {
-    const model = client.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-    
     const systemPrompt = `Tu es un expert en Conventional Commits. Génère un message de commit court et précis basé sur le diff fourni.
 
 Format requis: <type>(<scope>): <description>
@@ -81,6 +79,14 @@ Règles:
 - Sois concis et précis
 - Si le diff est vide ou ne contient que des espaces, retourne "chore: initial commit"`;
 
+    const model = client.getGenerativeModel(
+      { 
+        model: 'gemini-1.5-flash',
+        systemInstruction: systemPrompt
+      },
+      { apiVersion: 'v1beta' }
+    );
+
     const filteredDiff = filterDiff(diff);
     const truncatedDiff = truncateDiff(filteredDiff);
     
@@ -90,11 +96,7 @@ Règles:
 
     const prompt = `Diff Git:\n\`\`\`\n${truncatedDiff}\n\`\`\`\n\nGénère un message de commit Conventional Commits:`;
 
-    const result = await model.generateContent([
-      { text: systemPrompt },
-      { text: prompt }
-    ]);
-
+    const result = await model.generateContent(prompt);
     const commitMessage = result.response.text().trim();
     
     // Nettoyer le message (enlever les guillemets, etc.)

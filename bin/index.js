@@ -11,12 +11,14 @@ const cleanCommand = require('../src/commands/clean');
 const syncCommand = require('../src/commands/git/sync');
 const nukeCommand = require('../src/commands/git/nuke');
 
+const packageJson = require('../package.json');
+
 const program = new Command();
 
 program
   .name('flash-dev')
   .description('Boîte à outils d\'automatisation intelligente en ligne de commande (CLI) pour développeurs')
-  .version('1.1.0');
+  .version(packageJson.version);
 
 program
   .command('push')

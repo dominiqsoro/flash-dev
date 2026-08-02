@@ -1,8 +1,9 @@
 const pc = require('picocolors');
 const { getApiKey } = require('../utils/config');
 const { isGitRepository, getCurrentBranch } = require('../utils/git');
+const packageJson = require('../../package.json');
 
-const VERSION = '1.1.0';
+const VERSION = packageJson.version;
 
 /**
  * Affiche l'état et la version du CLI
@@ -36,8 +37,15 @@ function versionCommand() {
   console.log(pc.green('Node.js:'), pc.white(process.version));
   console.log(pc.green('Plateforme:'), pc.white(process.platform));
   
-  console.log(pc.cyan('\nUtilisez "flash-dev push" pour automatiser votre workflow Git!'));
-  console.log(pc.cyan('Utilisez "flash-dev scan" pour analyser la sécurité de votre projet!\n'));
+  console.log(pc.cyan('\nCommandes disponibles:'));
+  console.log(pc.cyan('  flash-dev push   ') + pc.white('- Automatiser le workflow Git (IA + commit + push)'));
+  console.log(pc.cyan('  flash-dev scan   ') + pc.white('- Analyser la sécurité et détecter les vulnérabilités'));
+  console.log(pc.cyan('  flash-dev env    ') + pc.white('- Générer un fichier .env.example assaini et sécurisé'));
+  console.log(pc.cyan('  flash-dev secure ') + pc.white('- Audit anti-fuite de secrets (recherche de clés privées/tokens)'));
+  console.log(pc.cyan('  flash-dev clean  ') + pc.white('- Libérer de l\'espace disque (nettoyage caches et node_modules)'));
+  console.log(pc.cyan('  flash-dev sync   ') + pc.white('- Synchroniser la branche de travail avec la branche principale'));
+  console.log(pc.cyan('  flash-dev nuke   ') + pc.white('- Nettoyer et supprimer les branches locales fusionnées'));
+  console.log(pc.cyan('\nUtilisez "flash-dev --help" pour afficher plus de détails.\n'));
 }
 
 module.exports = versionCommand;

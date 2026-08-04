@@ -113,7 +113,7 @@ Règles:
 
 /**
  * Génère un message de commit basique sans IA (fallback)
- * Analyse le diff pour déterminer le type et créer un message simple
+ * Analyse le diff pour déterminer le type et créer un message intelligent
  * @param {string} diff - Le diff des modifications
  * @returns {string} Le message de commit généré
  */
@@ -122,6 +122,8 @@ function generateBasicCommitMessage(diff) {
   const addedFiles = new Set();
   const modifiedFiles = new Set();
   const deletedFiles = new Set();
+  const addedLines = [];
+  const removedLines = [];
   
   // Analyser le diff pour extraire les informations
   lines.forEach(line => {
@@ -135,12 +137,12 @@ function generateBasicCommitMessage(diff) {
       if (file !== '/dev/null') {
         deletedFiles.add(file);
       }
+    } else if (line.startsWith('+') && !line.startsWith('+++')) {
+      addedLines.push(line.substring(1).trim());
+    } else if (line.startsWith('-') && !line.startsWith('---')) {
+      removedLines.push(line.substring(1).trim());
     }
   });
-  
-  // Déterminer le type de commit basé sur les fichiers modifiés
-  let type = 'chore';
-  let scope = 'general';
   
   const allFiles = [...addedFiles, ...modifiedFiles, ...deletedFiles];
   
@@ -148,48 +150,98 @@ function generateBasicCommitMessage(diff) {
     return 'chore: initial commit';
   }
   
-  // Analyser les extensions de fichiers pour déterminer le type
-  const fileExtensions = allFiles.map(f => {
-    const parts = f.split('.');
-    return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : '';
+  // Déterminer le scope basé sur les chemins de fichiers
+  let scope = 'general';
+  const paths = allFiles.map(f => {
+    const parts = f.split('/');
+    return parts.length > 1 ? parts[parts.length - 2].toLowerCase() : 'root';
   });
   
-  if (fileExtensions.some(ext => ['md', 'txt', 'rst'].includes(ext))) {
-    type = 'docs';
-  } else if (fileExtensions.some(ext => ['js', 'ts', 'py', 'java', 'go', 'rs', 'cpp', 'c'].includes(ext))) {
-    // Vérifier si c'est un test
-    if (allFiles.some(f => f.includes('test') || f.includes('spec'))) {
-      type = 'test';
-    } else {
-      type = 'feat';
-    }
-  } else if (fileExtensions.some(ext => ['css', 'scss', 'sass', 'less'].includes(ext))) {
-    type = 'style';
-  } else if (deletedFiles.size > 0) {
-    type = 'fix';
-  }
-  
-  // Déterminer le scope basé sur les chemins de fichiers
-  if (allFiles.some(f => f.includes('src/'))) {
-    scope = 'core';
-  } else if (allFiles.some(f => f.includes('test/'))) {
-    scope = 'test';
-  } else if (allFiles.some(f => f.includes('docs/'))) {
-    scope = 'docs';
-  } else if (allFiles.some(f => f.includes('config'))) {
+  // Détection intelligente du scope
+  if (paths.some(p => ['auth', 'login', 'token', 'user', 'session'].includes(p))) {
+    scope = 'auth';
+  } else if (paths.some(p => ['api', 'routes', 'controllers', 'handlers'].includes(p))) {
+    scope = 'api';
+  } else if (paths.some(p => ['db', 'database', 'models', 'schema', 'migration'].includes(p))) {
+    scope = 'db';
+  } else if (paths.some(p => ['ui', 'components', 'views', 'pages', 'layout'].includes(p))) {
+    scope = 'ui';
+  } else if (paths.some(p => ['utils', 'helpers', 'lib', 'common'].includes(p))) {
+    scope = 'utils';
+  } else if (paths.some(p => ['config', 'settings', 'env'].includes(p))) {
     scope = 'config';
+  } else if (paths.some(p => ['test', 'spec'].includes(p))) {
+    scope = 'test';
+  } else if (paths.some(p => ['core', 'src'].includes(p))) {
+    scope = 'core';
   }
   
-  // Créer une description basée sur les actions
+  // Déterminer le type basé sur les modifications
+  let type = 'chore';
+  
+  // Analyser les lignes ajoutées/supprimées pour détecter le type
+  const allAddedText = addedLines.join(' ').toLowerCase();
+  const allRemovedText = removedLines.join(' ').toLowerCase();
+  
+  // Mots-clés pour chaque type
+  const typeKeywords = {
+    feat: ['add', 'new', 'create', 'implement', 'feature', 'support', 'enable'],
+    fix: ['fix', 'bug', 'error', 'issue', 'resolve', 'correct', 'patch'],
+    refactor: ['refactor', 'optimize', 'improve', 'simplify', 'clean', 'restructure'],
+    docs: ['doc', 'readme', 'comment', 'documentation'],
+    test: ['test', 'spec', 'assert', 'mock'],
+    style: ['style', 'format', 'indent', 'lint'],
+    chore: ['update', 'upgrade', 'config', 'dependency', 'version']
+  };
+  
+  // Chercher les mots-clés dans les lignes ajoutées
+  for (const [t, keywords] of Object.entries(typeKeywords)) {
+    if (keywords.some(kw => allAddedText.includes(kw))) {
+      type = t;
+      break;
+    }
+  }
+  
+  // Fallback basé sur les extensions
+  if (type === 'chore') {
+    const fileExtensions = allFiles.map(f => {
+      const parts = f.split('.');
+      return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : '';
+    });
+    
+    if (fileExtensions.some(ext => ['md', 'txt', 'rst'].includes(ext))) {
+      type = 'docs';
+    } else if (fileExtensions.some(ext => ['js', 'ts', 'py', 'java', 'go', 'rs', 'cpp', 'c'].includes(ext))) {
+      if (allFiles.some(f => f.includes('test') || f.includes('spec'))) {
+        type = 'test';
+      } else {
+        type = 'feat';
+      }
+    } else if (fileExtensions.some(ext => ['css', 'scss', 'sass', 'less'].includes(ext))) {
+      type = 'style';
+    }
+  }
+  
+  // Générer une description intelligente
   let description = '';
-  if (addedFiles.size > 0 && deletedFiles.size === 0) {
+  
+  // Analyser les patterns dans les lignes ajoutées
+  if (allAddedText.includes('refresh') || allAddedText.includes('token')) {
+    description = 'add refresh token validation';
+  } else if (allAddedText.includes('jwt') || allAddedText.includes('expiration')) {
+    description = 'improve JWT expiration handling';
+  } else if (allAddedText.includes('login') || allAddedText.includes('auth')) {
+    description = 'improve login handling';
+  } else if (allAddedText.includes('api') || allAddedText.includes('endpoint')) {
+    description = 'update API endpoints';
+  } else if (allAddedText.includes('error') || allAddedText.includes('exception')) {
+    description = 'improve error handling';
+  } else if (addedFiles.size > 0 && deletedFiles.size === 0) {
     description = `add ${addedFiles.size} file${addedFiles.size > 1 ? 's' : ''}`;
   } else if (deletedFiles.size > 0 && addedFiles.size === 0) {
     description = `remove ${deletedFiles.size} file${deletedFiles.size > 1 ? 's' : ''}`;
-  } else if (addedFiles.size > 0 || deletedFiles.size > 0) {
-    description = `update ${allFiles.length} file${allFiles.length > 1 ? 's' : ''}`;
   } else {
-    description = 'update files';
+    description = `update ${allFiles.length} file${allFiles.length > 1 ? 's' : ''}`;
   }
   
   // Construire le message final

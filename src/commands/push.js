@@ -79,8 +79,14 @@ async function pushCommand() {
     let commitMessage;
     if (useAI) {
       console.log(pc.yellow('Génération du message de commit avec Gemini...'));
-      const client = initGeminiClient(apiKey);
-      commitMessage = await generateCommitMessage(client, diff);
+      try {
+        const client = initGeminiClient(apiKey);
+        commitMessage = await generateCommitMessage(client, diff);
+      } catch (aiError) {
+        console.log(pc.yellow(`⚠️  Erreur IA: ${aiError.message}`));
+        console.log(pc.yellow('Fallback vers le mode basique...\n'));
+        commitMessage = generateBasicCommitMessage(diff);
+      }
     } else {
       console.log(pc.yellow('Génération du message de commit (mode basique)...'));
       commitMessage = generateBasicCommitMessage(diff);

@@ -106,7 +106,8 @@ Règles:
 
     return cleanedMessage;
   } catch (error) {
-    throw new Error(`Erreur lors de la génération du message de commit: ${error.message}`);
+    // Laisser l'erreur remonter pour être gérée par l'appelant
+    throw error;
   }
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "flash-dev",
-  "version": "1.1.1",
+  "version": "2.0.0",
   "description": "Boîte à outils d'automatisation intelligente en ligne de commande (CLI) pour développeurs — 100% Gratuit & Open-Source",
   "main": "index.js",
   "bin": {
@@ -22,15 +22,16 @@
     "automation",
     "ai",
     "gemini",
-    "commit",
-    "push",
+    "copilot",
+    "developer-tools",
+    "doctor",
+    "analyze",
+    "deps",
+    "docker",
+    "laravel",
+    "nextjs",
     "security",
-    "scan",
-    "env",
-    "clean",
-    "sync",
-    "nuke",
-    "developer-tools"
+    "diagnostics"
   ],
   "author": "dominiqsoro",
   "license": "GPL-3.0",

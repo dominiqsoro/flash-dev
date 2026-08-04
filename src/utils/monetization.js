@@ -1,7 +1,6 @@
 const pc = require('picocolors');
 
 const SPONSOR_MESSAGES = [
-  "flash-dev vous a fait gagner du temps aujourd'hui ? Offrez-nous un café sur Ko-fi : https://ko-fi.com/dominiqsoro",
   "Soutenez le développeur sur Buy Me a Coffee : https://www.buymeacoffee.com/dominiqsoro",
   "Vous aimez cet outil ? Laissez-nous une étoile sur GitHub : https://github.com/dominiqsoro/flash-dev",
   "flash-dev est 100% gratuit. Soutenez le projet sur GitHub Sponsors : https://github.com/dominiqsoro"
@@ -9,8 +8,6 @@ const SPONSOR_MESSAGES = [
 
 const ADS_MESSAGES = [
   "[Sponsor] Hébergez vos applications Node.js en 1 clic sur Hostinger - Code promo: 1BY1403",
-  "[Sponsor] Sécurisez votre code avec Securify, le scanner de vulnérabilités CLI gratuit.",
-  "[Sponsor] Besoin d'une base de données SQL ultra-rapide ? Essayez NeonDB."
 ];
 
 /**

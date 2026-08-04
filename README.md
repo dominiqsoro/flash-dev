@@ -40,6 +40,7 @@ Flash-dev automates your Git workflow in a single command: `git add` + AI-powere
 - [License](#en-license)
 - [Support the Project](#en-support-project)
 - [Support](#en-support)
+- [Changelog](#en-changelog)
 - [Roadmap](#en-roadmap)
 
 </details>
@@ -47,21 +48,40 @@ Flash-dev automates your Git workflow in a single command: `git add` + AI-powere
 <a name="en-features"></a>
 ### Features
 
+#### 🚀 Core Workflow (v3.0.0)
 | Feature | Description |
 |---|---|
-| Git Automation | Single command for add, commit, and push |
-| AI-Powered Commits | Uses Gemini 2.5 Flash to generate Conventional Commits messages (optional) |
-| Basic Mode | Works without AI, using simple message generation |
-| Security Scan | Detects vulnerabilities in your code |
-| Secret Audit | Prevents accidental secret leaks before a commit |
-| Environment Generator | Creates secure `.env.example` files |
-| Disk Cleanup | Frees up space by cleaning caches and old projects |
-| Branch Sync | Synchronizes automatically with the main branch |
-| Branch Cleanup | Safely removes merged local branches |
-| Maximum Security | BYOK (Bring Your Own Key) architecture — zero remote key storage |
-| User Validation | Interactive confirmation before every commit |
-| Easy Installation | Available on NPM via `npm install -g flash-dev` |
-| Open Source | Completely free and transparent code |
+| **Git Automation** | Single command: `git add` + AI commit + `git push` |
+| **AI-Powered Commits** | Gemini 2.5 Flash generates Conventional Commits (optional) |
+| **Environment Doctor** | Complete diagnostics: Git, Node, Docker, DB, Framework |
+| **Project Analysis** | Architecture, stack, dependencies, security audit |
+| **Dependency Manager** | Detect unused packages, vulnerabilities, duplicates |
+| **AI Error Explainer** | Paste any error, get AI-powered solutions |
+
+#### 🛡️ Security
+| Feature | Description |
+|---|---|
+| **Security Scan** | Detects vulnerabilities in your code |
+| **Secret Audit** | Prevents accidental secret leaks before commit |
+| **Environment Generator** | Creates secure `.env.example` files |
+| **BYOK Architecture** | Zero remote key storage — you control your API keys |
+
+#### ⚙️ System Utilities
+| Feature | Description |
+|---|---|
+| **Disk Cleanup** | Frees space by cleaning caches and build artifacts |
+| **Branch Sync** | Synchronizes automatically with main/master |
+| **Branch Cleanup** | Safely removes merged local branches |
+| **Project Bootstrap** | Configure Next.js, Laravel, Vue projects instantly |
+| **Docker Support** | Docker initialization, logs, cleanup |
+| **Laravel Ecosystem** | CRUD generation, cache optimization, migrations |
+
+#### 🎯 Framework Support
+- **Node.js**: Next.js, React, Vue, Nuxt, NestJS, Express, Fastify
+- **PHP**: Laravel, Symfony
+- **Python**: Django, Flask (via detectors)
+- **Go**: Go modules (via detectors)
+- **Docker**: Full Docker/Docker Compose integration
 
 <a name="en-requirements"></a>
 ### Requirements
@@ -222,6 +242,72 @@ flash-dev status
 
 Displays system status and version.
 
+#### 🆕 Environment Doctor: `flash-dev doctor`
+
+```bash
+flash-dev doctor
+```
+
+Complete diagnostics of your development environment:
+
+- **Git**: Installation, repository status, branch, conflicts
+- **Node.js**: Version, package managers (npm, pnpm, yarn, bun)
+- **Docker**: Engine status, containers, images
+- **Database**: MySQL, PostgreSQL, Redis status
+- **Framework**: Auto-detection (Laravel, Next.js, React, etc.)
+
+#### 🆕 Project Analysis: `flash-dev analyze`
+
+```bash
+flash-dev analyze
+```
+
+Comprehensive project audit:
+
+- **Architecture**: AI-powered scoring (with Gemini) or static analysis
+- **Stack**: Framework, language, dependencies
+- **Size**: Source code weight vs ignored files
+- **Security**: Vulnerability detection
+- **Suggestions**: AI-generated improvements
+
+#### 🆕 Dependency Manager: `flash-dev deps`
+
+```bash
+flash-dev deps
+```
+
+Analyze dependencies:
+
+- **Unused packages**: Detection via import analysis
+- **Vulnerabilities**: High/critical severity
+- **Outdated**: Packages with newer versions
+- **Duplicates**: Deduplication opportunities
+
+Auto-fix mode:
+
+```bash
+flash-dev deps --fix
+```
+
+#### 🆕 AI Error Explainer: `flash-dev explain`
+
+```bash
+flash-dev explain
+```
+
+Paste any error and get AI-powered solutions:
+
+- **Cause**: Root cause analysis
+- **Solution**: Step-by-step fix
+- **Example**: Code snippets
+- **Documentation**: Relevant links
+
+Or analyze a log file:
+
+```bash
+flash-dev explain error.log
+```
+
 #### Help
 
 ```bash
@@ -322,16 +408,90 @@ Flash-dev is **100% free**, thanks to the BYOK model. If the tool saves you time
 - **Documentation** — [README.md](https://github.com/dominiqsoro/flash-dev#readme)
 - **Developer** — [dominiqsoro](https://github.com/dominiqsoro)
 
+<a name="en-changelog"></a>
+### Changelog
+
+#### [v3.0.0] - 2024-08-04
+
+**Major Release — Intelligent Terminal Copilot**
+
+This release transforms Flash-dev from a Git automation tool into a context-aware intelligent terminal copilot.
+
+**🚀 New Features**
+- **Environment Doctor** (`flash-dev doctor`): Complete diagnostics of Git, Node.js, Docker, databases, and frameworks with parallel execution
+- **Project Analysis** (`flash-dev analyze`): Architecture scoring (AI-powered or static), stack analysis, security audit
+- **Dependency Manager** (`flash-dev deps [--fix]`): Detect unused packages, vulnerabilities, outdated dependencies with auto-fix
+- **AI Error Explainer** (`flash-dev explain [error]`): Gemini-powered error analysis with local fallback for common patterns
+- **Auto-fix Command** (`flash-dev fix`): ESLint, TypeScript, imports, and formatting corrections with automatic backup
+- **Cache Manager** (`flash-dev cache [list/stats/clean]`): Unified cache management for npm, pnpm, yarn, composer, docker, vite, next
+
+**🏗️ Architecture**
+- New modular system: Core (Config, Logger, Errors), Detectors (Git, Node, Docker, PHP, Database, Framework)
+- Centralized error handling with solution-oriented messages
+- Parallel execution for diagnostics and analysis
+- Context-aware project detection
+
+**📝 Breaking Changes**
+- Minimum Node.js version: 18.0.0 (unchanged)
+- New positioning: "Intelligent Terminal Copilot" instead of "Git Automation Tool"
+
+**🐛 Bug Fixes**
+- Enhanced error handling across all commands
+- Fixed async operations in `clean` command to prevent terminal freeze
+- Improved validation in `env` command with better error messages
+- Added try/catch global wrapper in `version` command
+
+**📚 Documentation**
+- Updated README with new v3.0.0 positioning
+- Added detailed roadmap for v3.1.0 and v3.2.0
+- Enhanced feature descriptions and framework support list
+
+#### [v2.0.0] - Previous Release
+
+**Git Automation & Security Tools**
+
+**🚀 Features**
+- Git workflow automation: `git add` + AI commit + `git push`
+- AI-powered commits with Gemini 2.5 Flash (Conventional Commits)
+- Security scanning and vulnerability detection
+- Secret audit pre-commit (API keys, tokens, passwords)
+- Environment file generator (`.env.example`)
+- Disk cleanup (node_modules, build caches)
+- Branch synchronization and cleanup
+- Laravel ecosystem tools (CRUD generation, cache optimization)
+- System utilities (kill-node, size, sql-dump, scripts, log-tail, pack, node-switch)
+- Project bootstrap (Next.js, Laravel, Vue)
+
+**🛡️ Security**
+- BYOK architecture (Bring Your Own Key)
+- Zero remote key storage
+- Direct transfer to Google's secure API
+
 <a name="en-roadmap"></a>
 ### Roadmap
 
-- [x] Basic mode without AI
-- [x] Integrated security scan
-- [ ] `flash-dev clean` command for local branch cleanup
-- [ ] `flash-dev deploy` command for deployment automation
-- [ ] Multi-model AI support (OpenAI, Anthropic, etc.)
-- [ ] Customizable prompt configuration
-- [ ] Advanced interactive mode with file selection
+#### v3.0.0 — Current Release 
+- [x] **Core Architecture**: Modular system with Detectors, Services, Logger
+- [x] **Environment Doctor**: Complete diagnostics (Git, Node, Docker, DB, Framework)
+- [x] **Project Analysis**: Architecture scoring, stack analysis, security audit
+- [x] **Dependency Manager**: Unused detection, vulnerabilities, auto-fix
+- [x] **AI Error Explainer**: Gemini-powered error analysis with fallback
+- [x] **Enhanced Error Handling**: Centralized error types with solutions
+
+#### v3.1.0 — Next Release 
+- [ ] **Auto-fix Command**: ESLint, TypeScript, formatting fixes
+- [ ] **Docker Namespace**: init, build, logs, clean, shell, doctor
+- [ ] **Project Init**: Auto-detection + ESLint, Prettier, Husky, lint-staged
+- [ ] **Migration Manager**: Prisma, Laravel, Knex, Drizzle support
+- [ ] **Cache Manager**: npm, pnpm, yarn, composer, docker, vite, next
+
+#### v3.2.0 — Future 📋
+- [ ] **Deploy Command**: SSH, Docker, Railway, Render, Coolify, VPS
+- [ ] **Workflow Engine**: `flash-dev flow release` (test → audit → commit → build → deploy)
+- [ ] **Monitor**: Real-time CPU, RAM, Docker, DB, ports monitoring
+- [ ] **Benchmark**: Cold build, hot reload, install time, disk usage
+- [ ] **Workspace**: Monorepo support (apps, packages, libs, services)
+- [ ] **Audit Command**: Complete HTML/PDF report generation
 
 <div align="right"><a href="#flash-dev">Back to top</a></div>
 

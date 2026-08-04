@@ -93,7 +93,7 @@ async function explainCommand(errorInput) {
 
     if (!errorText || errorText.trim().length === 0) {
       console.log(pc.red('Aucune erreur à analyser'));
-      process.exit(1);
+      return;
     }
 
     console.log(pc.gray('Erreur analysée:'));
@@ -140,7 +140,7 @@ ${errorText}`;
           }
           
           console.log(pc.green('✨ Analyse IA terminée\n'));
-          process.exit(0);
+          return;
         } catch (parseError) {
           console.log(pc.yellow('⚠️  Impossible de parser la réponse IA, fallback local...\n'));
         }
@@ -182,7 +182,7 @@ ${errorText}`;
     if (config.isVerbose()) {
       console.log(error.stack);
     }
-    process.exit(1);
+    throw error;
   }
 }
 

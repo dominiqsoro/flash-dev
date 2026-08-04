@@ -32,7 +32,7 @@ async function depsCommand(options = {}) {
     const packageJsonPath = path.join(process.cwd(), 'package.json');
     if (!fs.existsSync(packageJsonPath)) {
       console.log(pc.red('Erreur: package.json non trouvé'));
-      process.exit(1);
+      return;
     }
 
     const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
@@ -121,7 +121,7 @@ async function depsCommand(options = {}) {
 
     if (config.isJson()) {
       console.log(JSON.stringify(analysis, null, 2));
-      process.exit(0);
+      return;
     }
 
     // Affichage des résultats
@@ -172,7 +172,7 @@ async function depsCommand(options = {}) {
         analysis.duplicates.length === 0 && 
         analysis.unused.length === 0) {
       console.log(pc.green('✅ Aucun problème détecté!\n'));
-      process.exit(0);
+      return;
     }
 
     // Mode interactif pour suppression
@@ -225,7 +225,7 @@ async function depsCommand(options = {}) {
     if (config.isVerbose()) {
       console.log(error.stack);
     }
-    process.exit(1);
+    throw error;
   }
 }
 

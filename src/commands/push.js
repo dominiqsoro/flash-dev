@@ -30,7 +30,7 @@ async function pushCommand() {
     if (!isGitRepository()) {
       console.log(pc.red('Oups ! Ce dossier n\'est pas un dépôt Git valide.'));
       console.log(pc.cyan('Initialisez un dépôt avec: git init\n'));
-      process.exit(1);
+      return;
     }
 
     // Étape 2: Vérification de la clé API (optionnelle)
@@ -67,7 +67,7 @@ async function pushCommand() {
     if (!hasStagedChanges()) {
       console.log(pc.red('Oups ! Aucun changement n\'a été détecté.'));
       console.log(pc.cyan('Modifiez ou ajoutez un fichier avant de lancer: flash-dev push\n'));
-      process.exit(0);
+      return;
     }
 
     // Étape 5: Extraction du diff
@@ -97,7 +97,7 @@ async function pushCommand() {
 
     if (!confirm) {
       console.log(pc.yellow('\nOpération annulée par l\'utilisateur.\n'));
-      process.exit(0);
+      return;
     }
 
     // Étape 8: Commit
@@ -127,7 +127,7 @@ async function pushCommand() {
     if (error.message.includes('Git')) {
       displayGitError(error.message);
     }
-    process.exit(1);
+    throw error;
   }
 }
 

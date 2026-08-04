@@ -101,13 +101,13 @@ async function fixCommand() {
 
     if (config.isJson()) {
       console.log(JSON.stringify(fixes, null, 2));
-      process.exit(0);
+      return;
     }
 
     // Affichage des fixes disponibles
     if (fixes.length === 0) {
       console.log(pc.green('✅ Aucun problème détecté!\n'));
-      process.exit(0);
+      return;
     }
 
     console.log(pc.bold('Fixes disponibles:\n'));
@@ -132,7 +132,7 @@ async function fixCommand() {
 
     if (!confirm) {
       console.log(pc.yellow('\nOpération annulée.\n'));
-      process.exit(0);
+      return;
     }
 
     // Backup avant modifications
@@ -205,7 +205,7 @@ async function fixCommand() {
     if (config.isVerbose()) {
       console.log(error.stack);
     }
-    process.exit(1);
+    throw error;
   }
 }
 

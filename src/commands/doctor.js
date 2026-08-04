@@ -44,7 +44,7 @@ async function doctorCommand() {
 
     if (config.isJson()) {
       console.log(JSON.stringify(results, null, 2));
-      process.exit(0);
+      return;
     }
 
     // Affichage des résultats
@@ -238,14 +238,14 @@ async function doctorCommand() {
       console.log();
     }
 
-    process.exit(hasErrors ? 1 : 0);
+    // Return exit code for commander
 
   } catch (error) {
     console.log(pc.red(`\n❌ Erreur lors du diagnostic: ${error.message}\n`));
     if (config.isVerbose()) {
       console.log(error.stack);
     }
-    process.exit(1);
+    throw error;
   }
 }
 

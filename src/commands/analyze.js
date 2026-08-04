@@ -91,7 +91,7 @@ async function analyzeCommand() {
 
     if (config.isJson()) {
       console.log(JSON.stringify(results, null, 2));
-      process.exit(0);
+      return;
     }
 
     // Affichage
@@ -175,7 +175,7 @@ Format JSON: {"score": number, "suggestions": ["..."], "improvements": ["..."]}`
     if (config.isVerbose()) {
       console.log(error.stack);
     }
-    process.exit(1);
+    throw error;
   }
 }
 

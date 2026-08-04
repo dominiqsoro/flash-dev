@@ -25,7 +25,7 @@ async function cacheCommand(action = 'list') {
 
     if (config.isJson()) {
       console.log(JSON.stringify(caches, null, 2));
-      process.exit(0);
+      return;
     }
 
     if (action === 'list') {
@@ -75,7 +75,7 @@ async function cacheCommand(action = 'list') {
       
       if (cleanable.length === 0) {
         console.log(pc.green('Aucun cache à nettoyer\n'));
-        process.exit(0);
+        return;
       }
       
       let totalSize = 0;
@@ -95,7 +95,7 @@ async function cacheCommand(action = 'list') {
       
       if (!confirm) {
         console.log(pc.yellow('\nOpération annulée.\n'));
-        process.exit(0);
+        return;
       }
       
       console.log(pc.yellow('Nettoyage en cours...\n'));
@@ -124,7 +124,7 @@ async function cacheCommand(action = 'list') {
     if (config.isVerbose()) {
       console.log(error.stack);
     }
-    process.exit(1);
+    throw error;
   }
 }
 

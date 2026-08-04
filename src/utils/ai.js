@@ -81,10 +81,9 @@ Règles:
 
     const model = client.getGenerativeModel(
       { 
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.5-flash',
         systemInstruction: systemPrompt
-      },
-      { apiVersion: 'v1beta' }
+      }
     );
 
     const filteredDiff = filterDiff(diff);

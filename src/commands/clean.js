@@ -1,4 +1,5 @@
-const fs = require('fs');
+const fs = require('fs').promises;
+const fsSync = require('fs');
 const path = require('path');
 const pc = require('picocolors');
 const prompts = require('prompts');
@@ -22,21 +23,21 @@ const TARGET_DIRECTORIES = [
 ];
 
 /**
- * Calculer la taille d'un dossier de manière récursive
+ * Calculer la taille d'un dossier de manière asynchrone
  */
-function getDirectorySize(dirPath) {
+async function getDirectorySize(dirPath) {
   let totalSize = 0;
   
-  function calculateSize(currentPath) {
+  async function calculateSize(currentPath) {
     try {
-      const stats = fs.statSync(currentPath);
+      const stats = await fs.stat(currentPath);
       
       if (stats.isDirectory()) {
-        const files = fs.readdirSync(currentPath);
-        files.forEach(file => {
+        const files = await fs.readdir(currentPath);
+        for (const file of files) {
           const filePath = path.join(currentPath, file);
-          calculateSize(filePath);
-        });
+          await calculateSize(filePath);
+        }
       } else {
         totalSize += stats.size;
       }
@@ -45,7 +46,7 @@ function getDirectorySize(dirPath) {
     }
   }
   
-  calculateSize(dirPath);
+  await calculateSize(dirPath);
   return totalSize;
 }
 
@@ -65,9 +66,9 @@ function formatSize(bytes) {
 /**
  * Vérifier si un dossier n'a pas été modifié depuis 3 mois
  */
-function isOldDirectory(dirPath) {
+async function isOldDirectory(dirPath) {
   try {
-    const stats = fs.statSync(dirPath);
+    const stats = await fs.stat(dirPath);
     const threeMonthsAgo = Date.now() - (90 * 24 * 60 * 60 * 1000);
     return stats.mtimeMs < threeMonthsAgo;
   } catch (error) {
@@ -78,10 +79,10 @@ function isOldDirectory(dirPath) {
 /**
  * Supprimer un dossier de manière récursive
  */
-function deleteDirectory(dirPath) {
+async function deleteDirectory(dirPath) {
   try {
-    if (fs.existsSync(dirPath)) {
-      fs.rmSync(dirPath, { recursive: true, force: true });
+    if (fsSync.existsSync(dirPath)) {
+      await fs.rm(dirPath, { recursive: true, force: true });
       return true;
     }
     return false;
@@ -93,7 +94,7 @@ function deleteDirectory(dirPath) {
 
 /**
  * Commande: flash-dev clean
- * Libérateur d'espace disque universel
+ * Libérateur d'espace disque universel (asynchrone)
  */
 async function cleanCommand() {
   try {
@@ -106,19 +107,19 @@ async function cleanCommand() {
     let totalSize = 0;
     
     // Scanner récursivement les sous-dossiers
-    function scanDirectory(dir) {
+    async function scanDirectory(dir) {
       try {
-        const items = fs.readdirSync(dir);
+        const items = await fs.readdir(dir);
         
-        items.forEach(item => {
+        for (const item of items) {
           const itemPath = path.join(dir, item);
-          const stats = fs.statSync(itemPath);
+          const stats = await fs.stat(itemPath);
           
           if (stats.isDirectory()) {
             // Vérifier si c'est un dossier cible
             if (TARGET_DIRECTORIES.includes(item)) {
-              const size = getDirectorySize(itemPath);
-              const isOld = isOldDirectory(itemPath);
+              const size = await getDirectorySize(itemPath);
+              const isOld = await isOldDirectory(itemPath);
               
               if (size > 0) {
                 targetDirs.push({
@@ -132,15 +133,15 @@ async function cleanCommand() {
             }
             
             // Continuer le scan récursif
-            scanDirectory(itemPath);
+            await scanDirectory(itemPath);
           }
-        });
+        }
       } catch (error) {
         // Ignorer les erreurs d'accès
       }
     }
     
-    scanDirectory(currentDir);
+    await scanDirectory(currentDir);
     
     if (targetDirs.length === 0) {
       console.log(pc.green('Aucun dossier cible trouvé à nettoyer.\n'));
@@ -178,14 +179,14 @@ async function cleanCommand() {
     let deletedCount = 0;
     let failedCount = 0;
     
-    targetDirs.forEach(dir => {
-      if (deleteDirectory(dir.path)) {
+    for (const dir of targetDirs) {
+      if (await deleteDirectory(dir.path)) {
         deletedCount++;
         console.log(pc.green(`  Supprimé: ${dir.name}`));
       } else {
         failedCount++;
       }
-    });
+    }
     
     console.log(pc.cyan(`\nTerminé: ${deletedCount} dossiers supprimés, ${failedCount} échecs`));
     console.log(pc.cyan(`Espace libéré: ${formatSize(totalSize)}\n`));

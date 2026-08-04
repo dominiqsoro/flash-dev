@@ -76,8 +76,21 @@ async function envCommand() {
     
     console.log(pc.yellow('Analyse du fichier .env...'));
     
-    // Lire le fichier .env
-    const envContent = fs.readFileSync(envPath, 'utf8');
+    // Lire le fichier .env avec validation
+    let envContent;
+    try {
+      envContent = fs.readFileSync(envPath, 'utf8');
+    } catch (readError) {
+      console.log(pc.red('Erreur: Impossible de lire le fichier .env.'));
+      console.log(pc.yellow(`Détails: ${readError.message}\n`));
+      process.exit(1);
+    }
+    
+    if (!envContent || envContent.trim() === '') {
+      console.log(pc.yellow('Attention: Le fichier .env est vide.\n'));
+      process.exit(0);
+    }
+    
     const lines = envContent.split('\n');
     
     const exampleLines = [];
@@ -116,8 +129,14 @@ async function envCommand() {
     
     console.log(pc.green(`Analyse terminée: ${totalLines} variables, ${sensitiveCount} sensibles détectées\n`));
     
-    // Écrire le fichier .env.example
-    fs.writeFileSync(envExamplePath, exampleLines.join('\n'));
+    // Écrire le fichier .env.example avec validation
+    try {
+      fs.writeFileSync(envExamplePath, exampleLines.join('\n'));
+    } catch (writeError) {
+      console.log(pc.red('Erreur: Impossible d\'écrire le fichier .env.example.'));
+      console.log(pc.yellow(`Détails: ${writeError.message}\n`));
+      process.exit(1);
+    }
     
     console.log(pc.green('Fichier .env.example généré avec succès!'));
     console.log(pc.cyan(`Fichier créé: ${envExamplePath}\n`));
@@ -125,7 +144,7 @@ async function envCommand() {
     console.log(pc.yellow('Pensez à ajouter des exemples de valeurs valides pour aider vos collaborateurs.\n'));
     
   } catch (error) {
-    console.log(pc.red(`\nErreur: ${error.message}\n`));
+    console.log(pc.red(`\nErreur inattendue: ${error.message}\n`));
     process.exit(1);
   }
 }

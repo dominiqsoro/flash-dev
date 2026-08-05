@@ -540,7 +540,7 @@ Flash-dev is **100% free**, thanks to the BYOK model. If the tool saves you time
 <a name="en-changelog"></a>
 ### Changelog
 
-#### [v3.0.0] - 2024-08-04
+#### [v3.0.0] - 2026-08-05
 
 **Major Release — Intelligent Terminal Copilot**
 

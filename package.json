@@ -1,71 +1,150 @@
 {
+
   "name": "flash-dev",
+
   "version": "3.0.0",
+
   "description": "Copilote intelligent pour votre terminal — Automatisez Git, sécurisez vos commits, analysez vos projets — 100% Gratuit & Open-Source",
+
   "main": "index.js",
+
   "bin": {
+
     "flash-dev": "./bin/index.js"
+
   },
+
   "scripts": {
+
+<<<<<<< HEAD
+
     "test": "jest",
+
     "test:watch": "jest --watch",
+
     "test:coverage": "jest --coverage"
+
+=======
+
+    "test": "jest"
+
+>>>>>>> abfa9a88c33a5b89d3563d41c15f39308c3a8c50
+
   },
+
   "repository": {
+
     "type": "git",
+
     "url": "git+https://github.com/dominiqsoro/flash-dev.git"
+
   },
+
   "publishConfig": {
+
     "registry": "https://registry.npmjs.org/"
+
   },
+
   "keywords": [
+
     "git",
+
     "cli",
+
     "automation",
+
     "ai",
+
     "gemini",
+
     "copilot",
+
     "developer-tools",
+
     "doctor",
+
     "analyze",
+
     "deps",
+
     "docker",
+
     "laravel",
+
     "nextjs",
+
     "security",
+
     "diagnostics"
+
   ],
+
   "author": "dominiqsoro",
+
   "license": "GPL-3.0",
+
   "type": "commonjs",
+
   "bugs": {
+
     "url": "https://github.com/dominiqsoro/flash-dev/issues"
+
   },
+
   "homepage": "https://github.com/dominiqsoro/flash-dev#readme",
+
   "files": [
+
     "bin",
+
     "src",
+
     "README.md",
+
     "LICENSE"
+
   ],
+
   "dependencies": {
+
     "@google/generative-ai": "^0.24.1",
+
     "commander": "^12.1.0",
+
     "picocolors": "^1.1.1",
+
     "prompts": "^2.4.2"
+
   },
+
   "devDependencies": {
+
     "jest": "^29.7.0"
+
   },
+
   "engines": {
+
     "node": ">=18.0.0"
+
   },
+
   "jest": {
+
     "testEnvironment": "node",
+
     "coverageDirectory": "coverage",
+
     "collectCoverageFrom": [
+
       "src/**/*.js",
+
       "!src/**/*.test.js"
+
     ]
+
   }
+
 }
+

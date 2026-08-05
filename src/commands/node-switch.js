@@ -56,62 +56,19 @@ function nodeSwitchCommand(versionArg) {
       }
 
       if (isWin) {
-        // Téléchargement du binaire node.exe directement pour Windows
-        const downloadUrl = `https://nodejs.org/dist/v${version}/win-${arch}/node.exe`;
-        const tempPath = path.join(versionDir, 'node.exe');
-        
-        console.log(pc.gray(`  Téléchargement : ${downloadUrl}`));
-        try {
-          execSync(`powershell.exe -NoProfile -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '${downloadUrl}' -OutFile '${tempPath}'"`, { stdio: 'pipe' });
-          console.log(pc.green('✅ Téléchargement du binaire Windows terminé.'));
-        } catch (err) {
-          console.log(pc.red(`\n❌ Échec du téléchargement. Veuillez vérifier la validité de la version "${version}".`));
-          console.log(pc.gray(`Détails: ${err.message}`));
-          // Nettoyer
-          try { fs.rmSync(versionDir, { recursive: true, force: true }); } catch (e) {}
-          process.exit(1);
+        const downloadUrl = `https://nodejs.org/dist/v${version}/node-v${version}-win-${arch}.zip`;
+        const nodeCmdPath = path.join(BIN_DIR, 'node.cmd');
+        const npmCmdPath = path.join(BIN_DIR, 'npm.cmd');
+
+        const nodeCmdContent = `@echo off\n"${nodeBinaryPath}" %*`;
+        fs.writeFileSync(nodeCmdPath, nodeCmdContent, 'utf8');
+
+        const npmCliPath = path.join(versionDir, 'node_modules', 'npm', 'bin', 'npm-cli.js');
+        if (fs.existsSync(npmCliPath)) {
+          const npmCmdContent = `@echo off\n"${nodeBinaryPath}" "${npmCliPath}" %*`;
+          fs.writeFileSync(npmCmdPath, npmCmdContent, 'utf8');
         }
-      } else {
-        // macOS ou Linux - Téléchargement et extraction de l'archive tar.gz
-        const platformName = process.platform === 'darwin' ? 'osx' : 'linux';
-        const archiveName = `node-v${version}-${platformName}-${arch}.tar.gz`;
-        const downloadUrl = `https://nodejs.org/dist/v${version}/${archiveName}`;
-        const archivePath = path.join(CACHE_DIR, archiveName);
-
-        console.log(pc.gray(`  Téléchargement : ${downloadUrl}`));
-        try {
-          execSync(`curl -sSL "${downloadUrl}" -o "${archivePath}"`, { stdio: 'pipe' });
-          console.log(pc.green('✅ Téléchargement de l\'archive terminé.'));
-          
-          console.log(pc.yellow('⏳ Extraction de l\'archive...'));
-          // Extraire l'archive directement dans le sous-dossier versionDir
-          execSync(`tar -xzf "${archivePath}" -C "${versionDir}" --strip-components=1`, { stdio: 'pipe' });
-          console.log(pc.green('✅ Extraction terminée.'));
-          
-          // Nettoyer l'archive compressée
-          fs.unlinkSync(archivePath);
-        } catch (err) {
-          console.log(pc.red(`\n❌ Échec du téléchargement ou de l'extraction. Veuillez vérifier que 'curl' et 'tar' sont disponibles et que la version "${version}" existe.`));
-          console.log(pc.gray(`Détails: ${err.message}`));
-          // Nettoyer
-          try { fs.rmSync(versionDir, { recursive: true, force: true }); } catch (e) {}
-          process.exit(1);
-        }
-      }
-    }
-
-    // Configurer le commutateur de version dans ~/.flash-dev/bin/
-    console.log(pc.yellow('\n⚙️  Mise à jour de la liaison locale de Node.js...'));
-
-    if (isWin) {
-      // Écriture d'un script wrapper .cmd qui ne requiert aucun privilège admin
-      const nodeCmdPath = path.join(BIN_DIR, 'node.cmd');
-      const npmCmdPath = path.join(BIN_DIR, 'npm.cmd');
-
-      const nodeCmdContent = `@echo off\n"${nodeBinaryPath}" %*`;
-      fs.writeFileSync(nodeCmdPath, nodeCmdContent, 'utf8');
-
-      // npm wrapper pointant vers le npm de la bonne version si disponible, sinon en s'appuyant sur l'exécutable node
+      
       const npmCliPath = path.join(versionDir, 'node_modules', 'npm', 'bin', 'npm-cli.js');
       if (fs.existsSync(npmCliPath)) {
         const npmCmdContent = `@echo off\n"${nodeBinaryPath}" "${npmCliPath}" %*`;
@@ -124,21 +81,7 @@ function nodeSwitchCommand(versionArg) {
       console.log(pc.cyan('\n💡 Pour l\'ajouter de manière permanente à votre compte utilisateur Windows (PowerShell) :'));
       console.log(pc.white(`  [Environment]::SetEnvironmentVariable("Path", "${BIN_DIR};" + [Environment]::GetEnvironmentVariable("Path", "User"), "User")`));
     } else {
-      // Unix - Création d'un wrapper bash exécutable
-      const nodeShPath = path.join(BIN_DIR, 'node');
-      const shContent = `#!/bin/sh\nexec "${nodeBinaryPath}" "$@"`;
       
-      fs.writeFileSync(nodeShPath, shContent, { encoding: 'utf8', mode: 0o755 });
-
-      console.log(pc.green('✅ Liaisons Unix créées.'));
-      console.log(pc.cyan('\n💡 Pour activer cette version de manière permanente, ajoutez cette ligne à votre ~/.bashrc ou ~/.zshrc :'));
-      console.log(pc.white(`  export PATH="${BIN_DIR}:$PATH"`));
-    }
-
-    console.log(pc.green(`\n🚀 flash-dev est configuré pour rediriger 'node' vers la version v${version} ! ✨\n`));
-
-  } catch (error) {
-    console.log(pc.red(`\n❌ Une erreur inattendue est survenue : ${error.message}\n`));
     process.exit(1);
   }
 }

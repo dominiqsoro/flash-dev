@@ -65,7 +65,7 @@ class NodeDetector {
           result.packageManager = 'npm';
         }
       } catch (error) {
-        // package.json invalide
+        
       }
     }
 

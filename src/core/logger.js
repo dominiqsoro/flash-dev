@@ -1,7 +1,4 @@
-/**
- * Logger unifié pour Flash-dev
- * Supporte différents niveaux et formats de sortie
- */
+
 
 const pc = require('picocolors');
 
@@ -70,12 +67,12 @@ class Logger {
       return Math.max(h.length, maxRowWidth);
     });
 
-    // Header
+    
     const headerRow = headers.map((h, i) => h.padEnd(colWidths[i])).join('  ');
     console.log(pc.cyan(headerRow));
     console.log(pc.gray('-'.repeat(headerRow.length)));
 
-    // Rows
+    
     rows.forEach(row => {
       const rowStr = row.map((cell, i) => String(cell).padEnd(colWidths[i])).join('  ');
       console.log(rowStr);

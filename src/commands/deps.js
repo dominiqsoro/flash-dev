@@ -1,7 +1,4 @@
-/**
- * Commande: flash-dev deps
- * Analyse des dépendances (Unused, Deprecated, Vulnerabilities, Duplicates, Latest)
- */
+
 
 const pc = require('picocolors');
 const Logger = require('../core/logger');
@@ -11,7 +8,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const prompts = require('prompts');
 
-// Packages critiques à ne jamais supprimer sans confirmation explicite
+
 const CRITICAL_PACKAGES = [
   'react', 'react-dom', 'next', 'vue', 'nuxt', '@nestjs/core', 
   'express', 'fastify', 'laravel', 'typescript', 'node'
@@ -50,7 +47,7 @@ async function depsCommand(options = {}) {
       heavy: []
     };
 
-    // Détection des packages obsolètes
+    
     try {
       const outdated = execSync('npm outdated --json', { 
         encoding: 'utf-8', 
@@ -67,10 +64,10 @@ async function depsCommand(options = {}) {
         });
       }
     } catch (error) {
-      // npm outdated échoue si tout est à jour
+      
     }
 
-    // Détection des vulnérabilités
+    
     try {
       const audit = execSync('npm audit --json', { 
         encoding: 'utf-8', 
@@ -89,10 +86,10 @@ async function depsCommand(options = {}) {
         });
       }
     } catch (error) {
-      // npm audit peut échouer
+      
     }
 
-    // Détection des packages lourds (approximation via npm ls)
+    
     try {
       const lsOutput = execSync('npm ls --json --depth=0', { 
         encoding: 'utf-8', 
@@ -108,8 +105,8 @@ async function depsCommand(options = {}) {
       }
     } catch (error) {}
 
-    // Détection des packages potentiellement inutilisés (heuristique simple)
-    // En production, on utiliserait un outil comme depcheck ou knip
+    
+    
     const sourceFiles = await findSourceFiles(process.cwd());
     const usedImports = await extractImports(sourceFiles);
     
@@ -124,7 +121,7 @@ async function depsCommand(options = {}) {
       return;
     }
 
-    // Affichage des résultats
+    
     console.log(pc.bold('Résultats de l\'analyse:\n'));
 
     if (analysis.outdated.length > 0) {
@@ -175,7 +172,7 @@ async function depsCommand(options = {}) {
       return;
     }
 
-    // Mode interactif pour suppression
+    
     if (!fix && analysis.unused.length > 0) {
       const { confirm } = await prompts({
         type: 'confirm',
@@ -189,7 +186,7 @@ async function depsCommand(options = {}) {
       }
     }
 
-    // Mode auto --fix
+    
     if (fix) {
       console.log(pc.yellow('\n⚙️  Mode auto-fix activé...'));
       
@@ -262,7 +259,7 @@ async function extractImports(files) {
       let match;
       while ((match = importRegex.exec(content)) !== null) {
         const dep = match[1] || match[2];
-        // Extraire le nom du package (sans les chemins)
+        
         const pkgName = dep.split('/')[0];
         if (pkgName && !pkgName.startsWith('.')) {
           imports.add(pkgName);
@@ -300,7 +297,7 @@ async function removeUnusedPackages(unused, packageJsonPath, packageJson) {
     console.log(pc.green('  ✅ Packages supprimés avec succès'));
   } catch (error) {
     console.log(pc.yellow('  ⚠️  Erreur lors de npm install, restauration...'));
-    // En production, on restaurerait le backup
+    
   }
 }
 

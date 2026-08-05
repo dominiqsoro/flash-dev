@@ -3,9 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { displayEthicalMonetization } = require('../utils/monetization');
 
-/**
- * Liste des patterns de sécurité à vérifier
- */
+
 const SECURITY_PATTERNS = [
   {
     name: 'API Keys Exposed',
@@ -48,8 +46,8 @@ const SECURITY_PATTERNS = [
       /debugger/gi
     ],
     extensions: ['.js', '.ts'],
-    excludeFiles: ['bin/', 'cli', 'index.js', 'src/'], // Ignorer les fichiers CLI et src/
-    // Disabled for CLI tools - console.log is normal for CLI applications
+    excludeFiles: ['bin/', 'cli', 'index.js', 'src/'], 
+    
     enabled: false,
     fix: 'Supprimez les instructions de debug avant la production'
   },

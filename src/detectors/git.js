@@ -137,7 +137,7 @@ class GitDetector {
       }
 
     } catch (error) {
-      // Erreur lors de la détection
+      
     }
 
     return result;

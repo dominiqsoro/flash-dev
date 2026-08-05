@@ -33,7 +33,7 @@ async function pushCommand() {
       return;
     }
 
-    // Étape 2: Vérification de la clé API (optionnelle)
+    
     let apiKey = getApiKey();
     let useAI = true;
     
@@ -58,24 +58,24 @@ async function pushCommand() {
       }
     }
 
-    // Étape 3: Indexation des fichiers
+    
     console.log(pc.yellow('Indexation des fichiers...'));
     gitAddAll();
     console.log(pc.green('Fichiers indexés\n'));
 
-    // Étape 4: Vérification des modifications
+    
     if (!hasStagedChanges()) {
       console.log(pc.red('Oups ! Aucun changement n\'a été détecté.'));
       console.log(pc.cyan('Modifiez ou ajoutez un fichier avant de lancer: flash-dev push\n'));
       return;
     }
 
-    // Étape 5: Extraction du diff
+    
     console.log(pc.yellow('Analyse des modifications...'));
     const diff = getStagedDiff();
     console.log(pc.green('Modifications détectées\n'));
 
-    // Étape 6: Génération du message de commit
+    
     let commitMessage;
     if (useAI) {
       console.log(pc.yellow('Génération du message de commit avec Gemini...'));
@@ -93,7 +93,7 @@ async function pushCommand() {
     }
     displayCommitMessage(commitMessage);
 
-    // Étape 7: Validation utilisateur
+    
     const { confirm } = await prompts({
       type: 'confirm',
       name: 'confirm',
@@ -106,19 +106,19 @@ async function pushCommand() {
       return;
     }
 
-    // Étape 8: Commit
+    
     console.log(pc.yellow('\nCommit en cours...'));
     gitCommit(commitMessage);
     console.log(pc.green('Commit réussi!\n'));
 
-    // Étape 9: Push
+    
     console.log(pc.yellow('Push vers le dépôt distant...'));
     try {
       gitPush();
       console.log(pc.green('Push réussi!\n'));
       console.log(pc.cyan('Votre code a été publié avec succès!'));
       
-      // Message éthique de monétisation
+      
       displayEthicalMonetization();
       
       console.log();

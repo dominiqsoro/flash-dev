@@ -1,7 +1,4 @@
-/**
- * Commande: flash-dev analyze
- * Audit complet du projet (Architecture, Stack, Poids, Dépendances, Qualité, Sécurité, Structure)
- */
+
 
 const pc = require('picocolors');
 const Logger = require('../core/logger');
@@ -26,18 +23,18 @@ async function analyzeCommand() {
   try {
     console.log(pc.cyan('\n📊 Flash-dev Analyze - Audit complet du projet\n'));
 
-    // Exécution parallèle des détecteurs
+    
     const [framework, node, git] = await Promise.all([
       new FrameworkDetector().detect(),
       new NodeDetector().detect(),
       new GitDetector().detect()
     ]);
 
-    // Analyse du poids (réutilisation de sizeCommand)
+    
     let sizeInfo = { sourceSize: 0, ignoredSize: 0, sourceFileCount: 0, ignoredFileCount: 0 };
     try {
-      // On exécute sizeCommand en interne pour récupérer les données
-      // Pour simplifier, on fait une analyse basique ici
+      
+      
       const rootDir = process.cwd();
       async function calculateSize(dir, excluded = []) {
         let totalSize = 0;
@@ -66,7 +63,7 @@ async function analyzeCommand() {
       sizeInfo.sourceFileCount = result.count;
     } catch (error) {}
 
-    // Analyse des dépendances
+    
     let depsInfo = { total: 0, unused: 0, deprecated: 0, vulnerabilities: 0, duplicates: 0 };
     if (node.hasPackageJson) {
       try {
@@ -76,7 +73,7 @@ async function analyzeCommand() {
       } catch (error) {}
     }
 
-    // Résultats
+    
     const results = {
       framework,
       node,
@@ -94,7 +91,7 @@ async function analyzeCommand() {
       return;
     }
 
-    // Affichage
+    
     console.log(pc.bold('Projet'));
     if (framework.framework) {
       console.log(pc.green(`  Framework: ${framework.framework.charAt(0).toUpperCase() + framework.framework.slice(1)} ${framework.version || ''}`));
@@ -121,7 +118,7 @@ async function analyzeCommand() {
       console.log(pc.yellow('  Dépôt: Non initialisé'));
     }
 
-    // Analyse IA optionnelle
+    
     const apiKey = getApiKey();
     if (apiKey && framework.framework) {
       console.log(pc.cyan('\n🤖 Analyse IA (Gemini)...'));
@@ -155,7 +152,7 @@ Format JSON: {"score": number, "suggestions": ["..."], "improvements": ["..."]}`
         console.log(pc.yellow('  Analyse IA indisponible'));
       }
     } else {
-      // Analyse statique sans IA
+      
       let staticScore = 70;
       if (git.repository) staticScore += 10;
       if (framework.framework) staticScore += 10;

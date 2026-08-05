@@ -65,7 +65,7 @@ class PHPDetector {
           execSync(`php -m | grep ${ext}`, { stdio: 'pipe' });
           result.extensions.push(ext);
         } catch (error) {
-          // Extension non disponible
+          
         }
       }
     }

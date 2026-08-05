@@ -1,7 +1,4 @@
-/**
- * Commande: flash-dev explain
- * Explique une erreur avec IA (Gemini) ou fallback local
- */
+
 
 const pc = require('picocolors');
 const Logger = require('../core/logger');
@@ -12,7 +9,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const prompts = require('prompts');
 
-// Base de connaissances locale pour les erreurs courantes
+
 const ERROR_PATTERNS = {
   'Cannot read properties of undefined': {
     cause: 'Tentative d\'accès à une propriété sur une valeur undefined',
@@ -68,39 +65,13 @@ async function explainCommand(errorInput) {
 
     let errorText = errorInput;
 
-    // Si aucune erreur fournie, demander à l'utilisateur
-    if (!errorText) {
-      const { input } = await prompts({
-        type: 'text',
-        name: 'input',
-        message: 'Collez l\'erreur ou le chemin du fichier log:',
+    
         validate: value => value.length > 0 || 'Veuillez entrer une erreur'
       });
       errorText = input;
     }
 
-    // Vérifier si c'est un chemin de fichier
-    if (errorText.includes('/') || errorText.includes('\\')) {
-      const filePath = path.isAbsolute(errorText) ? errorText : path.join(process.cwd(), errorText);
-      try {
-        errorText = await fs.readFile(filePath, 'utf8');
-        console.log(pc.gray(`Contenu lu depuis: ${filePath}\n`));
-      } catch (error) {
-        console.log(pc.red(`Impossible de lire le fichier: ${error.message}`));
-        console.log(pc.yellow('Utilisation du texte fourni directement...\n'));
-      }
-    }
-
-    if (!errorText || errorText.trim().length === 0) {
-      console.log(pc.red('Aucune erreur à analyser'));
-      return;
-    }
-
-    console.log(pc.gray('Erreur analysée:'));
-    console.log(pc.gray(errorText.substring(0, 500) + (errorText.length > 500 ? '...' : '')));
-    console.log();
-
-    // Tentative d'analyse IA
+    
     const apiKey = getApiKey();
     if (apiKey) {
       console.log(pc.cyan('🧠 Analyse avec Gemini...\n'));
@@ -149,7 +120,7 @@ ${errorText}`;
       }
     }
 
-    // Fallback local - recherche de patterns connus
+    
     console.log(pc.cyan('📚 Analyse locale (base de connaissances)\n'));
     
     let found = false;

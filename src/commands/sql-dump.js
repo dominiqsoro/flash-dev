@@ -3,10 +3,7 @@ const path = require('path');
 const pc = require('picocolors');
 const { execSync } = require('child_process');
 
-/**
- * Commande: sql-dump
- * Sauvegarde la base de données locale (MySQL / PostgreSQL) en lisant le fichier .env
- */
+
 function sqlDumpCommand() {
   try {
     console.log(pc.cyan('\n🗄️  Sauvegarde de la base de données locale...\n'));
@@ -33,7 +30,7 @@ function sqlDumpCommand() {
       const key = trimmed.substring(0, separatorIndex).trim();
       let val = trimmed.substring(separatorIndex + 1).trim();
 
-      // Enlever les guillemets éventuels autour de la valeur
+      
       if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
         val = val.slice(1, -1);
       }
@@ -81,29 +78,7 @@ function sqlDumpCommand() {
         const passArg = password ? `-p"${password}"` : '';
         dumpCommand = `mysqldump -h "${host}" -P "${port}" -u "${username}" ${passArg} "${database}" > "${dumpFile}"`;
       } else if (connection === 'pgsql' || connection === 'postgresql') {
-        // Définir la variable d'environnement PGPASSWORD de manière sécurisée
-        envOpts.PGPASSWORD = password;
-        dumpCommand = `pg_dump -h "${host}" -p "${port}" -U "${username}" -d "${database}" -F p -f "${dumpFile}"`;
-      } else {
-        console.log(pc.red(`SGBD "${connection}" non supporté localement pour le moment.`));
-        process.exit(1);
-      }
-    }
-
-    try {
-      console.log(pc.yellow(`⏳ Création du dump SQL dans : ${pc.bold(dumpFile)}...`));
-      execSync(dumpCommand, { stdio: 'pipe', env: envOpts, shell: true });
-      console.log(pc.green(`\n✨ Base de données sauvegardée avec succès !`));
-      console.log(pc.green(`📁 Fichier créé : ${pc.bold(dumpFile)}\n`));
-    } catch (err) {
-      console.log(pc.red(`\n❌ Échec du dump SQL.`));
-      console.log(pc.yellow('Vérifiez que :'));
-      console.log(pc.yellow(`  - L'utilitaire client (${connection === 'mysql' ? 'mysqldump' : 'pg_dump'}) est installé et accessible dans votre PATH.`));
-      console.log(pc.yellow('  - Les identifiants et accès réseau du fichier .env sont corrects.'));
-      console.log(pc.yellow('  - Si vous êtes sous Docker, le conteneur de base de données est actif et nommé "db".'));
-      console.log(pc.gray(`Détails de l'erreur: ${err.message}\n`));
-      
-      // Supprimer le fichier de dump vide ou corrompu s'il a été créé
+        
       const filePath = path.join(process.cwd(), dumpFile);
       if (fs.existsSync(filePath)) {
         try { fs.unlinkSync(filePath); } catch (e) {}

@@ -3,10 +3,7 @@ const path = require('path');
 const pc = require('picocolors');
 const { execSync } = require('child_process');
 
-/**
- * Commande: laravel make-crud <model>
- * Génère le CRUD complet pour un modèle Laravel
- */
+
 function makeCrudCommand(modelArg) {
   try {
     if (!modelArg) {
@@ -14,14 +11,14 @@ function makeCrudCommand(modelArg) {
       process.exit(1);
     }
 
-    // Vérifie si le fichier 'artisan' existe à la racine du projet
+    
     const artisanPath = path.join(process.cwd(), 'artisan');
     if (!fs.existsSync(artisanPath)) {
       console.log(pc.red(pc.bold('Erreur : ')) + pc.yellow('Ce dossier n\'est pas un projet Laravel valide (fichier artisan introuvable).'));
       process.exit(1);
     }
 
-    // Capitalise la première lettre du modèle pour forcer StudlyCase
+    
     const model = modelArg.charAt(0).toUpperCase() + modelArg.slice(1);
 
     console.log(pc.cyan(`\n🚀 Génération du CRUD complet pour le modèle : ${pc.bold(model)}\n`));

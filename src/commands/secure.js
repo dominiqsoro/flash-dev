@@ -1,9 +1,7 @@
 const { execSync } = require('child_process');
 const pc = require('picocolors');
 
-/**
- * Patterns de sécurité pour détecter les secrets
- */
+
 const SECURITY_PATTERNS = [
   {
     name: 'SSH Private Key',
@@ -63,9 +61,7 @@ const SECURITY_PATTERNS = [
   }
 ];
 
-/**
- * Vérifie si un pattern est pertinent dans le contexte donné
- */
+
 function isPatternRelevant(pattern, line, context) {
   if (pattern.context) {
     return pattern.context.test(context);
@@ -73,15 +69,12 @@ function isPatternRelevant(pattern, line, context) {
   return true;
 }
 
-/**
- * Commande: flash-dev secure
- * Audit anti-fuite de secrets avant commit
- */
+
 async function secureCommand() {
   try {
     console.log(pc.cyan('flash-dev secure - Audit anti-fuite de secrets\n'));
     
-    // Obtenir le diff des fichiers modifiés
+    
     let diff;
     try {
       diff = execSync('git diff --cached', { encoding: 'utf-8' });
@@ -120,7 +113,7 @@ async function secureCommand() {
       process.exit(0);
     }
     
-    // Afficher les problèmes détectés
+    
     console.log(pc.red(`ALERT: ${issues.length} secret(s) potentiel(s) détecté(s)!\n`));
     
     const critical = issues.filter(i => i.severity === 'critical');

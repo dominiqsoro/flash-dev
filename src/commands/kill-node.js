@@ -1,10 +1,7 @@
 const { execSync } = require('child_process');
 const pc = require('picocolors');
 
-/**
- * Commande: kill-node
- * Libère la RAM en tuant les processus Node fantômes en cours.
- */
+
 function killNodeCommand() {
   try {
     console.log(pc.cyan('\n⚙️  Recherche de processus Node.js fantômes...'));
@@ -21,21 +18,20 @@ function killNodeCommand() {
 
     if (platform === 'win32') {
       try {
-        // Exclure à la fois process.pid et process.ppid si possible
+        
         let cmd = `taskkill /F /IM node.exe /FI "PID ne ${currentPid}"`;
         if (parentPid) {
           cmd += ` /FI "PID ne ${parentPid}"`;
         }
         
-        // Exécuter taskkill en ignorant la sortie standard
+        
         execSync(cmd, { stdio: 'ignore' });
         console.log(pc.green('✨ Tous les processus Node.js fantômes ont été terminés avec succès.'));
       } catch (err) {
-        // taskkill retourne un code d'erreur non nul (généralement 128) si aucun processus ne correspond au filtre
-        console.log(pc.green('✨ Aucun processus Node.js fantôme n\'a été détecté.'));
+        
       }
     } else {
-      // macOS / Linux / etc.
+      
       try {
         const output = execSync('pgrep node', { encoding: 'utf8' });
         const pids = output
@@ -53,7 +49,7 @@ function killNodeCommand() {
           console.log(pc.green('✨ Aucun processus Node.js fantôme n\'a été détecté.'));
         }
       } catch (err) {
-        // pgrep retourne un code d'erreur si aucun processus n'est trouvé
+        
         console.log(pc.green('✨ Aucun processus Node.js fantôme n\'a été détecté.'));
       }
     }

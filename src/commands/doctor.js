@@ -23,7 +23,7 @@ async function doctorCommand() {
   try {
     console.log(pc.cyan('\n🔬 Flash-dev Doctor - Diagnostic de l\'environnement\n'));
 
-    // Exécution parallèle de tous les détecteurs
+    
     const [git, node, docker, php, database, framework] = await Promise.all([
       new GitDetector().detect(),
       new NodeDetector().detect(),
@@ -47,11 +47,11 @@ async function doctorCommand() {
       return;
     }
 
-    // Affichage des résultats
+    
     let hasErrors = false;
     let hasWarnings = false;
 
-    // Git
+    
     console.log(pc.bold('Git'));
     if (git.installed) {
       console.log(pc.green(`  ✔ Git installé: ${git.node || 'OK'}`));
@@ -78,7 +78,7 @@ async function doctorCommand() {
       hasErrors = true;
     }
 
-    // Node.js
+    
     console.log(pc.bold('\nNode.js'));
     if (node.node) {
       console.log(pc.green(`  ✔ Node.js: ${node.node}`));
@@ -96,7 +96,7 @@ async function doctorCommand() {
       hasWarnings = true;
     }
 
-    // Docker
+    
     console.log(pc.bold('\nDocker'));
     if (docker.installed) {
       console.log(pc.green(`  ✔ Docker installé`));
@@ -131,7 +131,7 @@ async function doctorCommand() {
       hasWarnings = true;
     }
 
-    // PHP
+    
     console.log(pc.bold('\nPHP'));
     if (php.php) {
       console.log(pc.green(`  ✔ PHP: ${php.php}`));
@@ -151,7 +151,7 @@ async function doctorCommand() {
       console.log(pc.gray(`  ℹ PHP non installé (optionnel)`));
     }
 
-    // Base de données
+    
     console.log(pc.bold('\nBase de données'));
     let dbFound = false;
     if (database.mysql.installed) {
@@ -191,7 +191,7 @@ async function doctorCommand() {
       console.log(pc.gray(`  ℹ Aucune base de données détectée`));
     }
 
-    // Framework
+    
     console.log(pc.bold('\nFramework'));
     if (framework.framework) {
       console.log(pc.green(`  ✔ ${framework.framework.charAt(0).toUpperCase() + framework.framework.slice(1)}: ${framework.version || 'détecté'}`));
@@ -201,7 +201,7 @@ async function doctorCommand() {
       console.log(pc.gray(`  ℹ Aucun framework détecté`));
     }
 
-    // Résumé
+    
     console.log(pc.cyan('\n' + '='.repeat(50)));
     if (hasErrors) {
       console.log(pc.red('  ❌ Erreurs détectées - Action requise'));
@@ -212,7 +212,7 @@ async function doctorCommand() {
     }
     console.log(pc.cyan('='.repeat(50) + '\n'));
 
-    // Suggestions
+    
     if (hasErrors || hasWarnings) {
       console.log(pc.cyan('Suggestions:\n'));
       
@@ -238,7 +238,7 @@ async function doctorCommand() {
       console.log();
     }
 
-    // Return exit code for commander
+    
 
   } catch (error) {
     console.log(pc.red(`\n❌ Erreur lors du diagnostic: ${error.message}\n`));

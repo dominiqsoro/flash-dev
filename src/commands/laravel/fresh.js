@@ -28,7 +28,7 @@ function freshCommand() {
 
     const totalSteps = commands.length;
     
-    // Barre de progression simple
+    
     for (let i = 0; i < totalSteps; i++) {
       const progress = Math.round(((i + 1) / totalSteps) * 100);
       const bar = '█'.repeat(Math.floor(progress / 5)) + '░'.repeat(20 - Math.floor(progress / 5));

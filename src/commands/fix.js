@@ -1,7 +1,4 @@
-/**
- * Commande: flash-dev fix
- * Auto-correction: ESLint, TypeScript, imports, formatting
- */
+
 
 const pc = require('picocolors');
 const Logger = require('../core/logger');
@@ -24,12 +21,12 @@ async function fixCommand() {
     const fixes = [];
     const backupDir = path.join(process.cwd(), '.flash-dev-backup');
 
-    // Créer le dossier de backup
+    
     if (!fs.existsSync(backupDir)) {
       await fs.mkdir(backupDir, { recursive: true });
     }
 
-    // Détection ESLint
+    
     const hasEslint = await hasFile('eslint.config.js') || 
                       await hasFile('.eslintrc.js') || 
                       await hasFile('.eslintrc.json') ||
@@ -55,11 +52,11 @@ async function fixCommand() {
           });
         }
       } catch (error) {
-        // ESLint peut ne pas avoir de problèmes
+        
       }
     }
 
-    // Détection Prettier
+    
     const hasPrettier = await hasFile('.prettierrc') || 
                         await hasFile('.prettierrc.json') ||
                         await hasFile('.prettierrc.js') ||
@@ -74,74 +71,18 @@ async function fixCommand() {
       });
     }
 
-    // Détection TypeScript
+    
     const hasTsConfig = await hasFile('tsconfig.json');
     if (hasTsConfig) {
       console.log(pc.yellow('🔍 Détection TypeScript...'));
       try {
         execSync('npx tsc --noEmit', { stdio: 'pipe' });
-        // Pas d'erreurs TypeScript
-      } catch (error) {
-        fixes.push({
-          tool: 'TypeScript',
-          description: 'Erreurs de type détectées',
-          fixable: false
-        });
-      }
-    }
-
-    // Imports (via ESLint ou simple heuristique)
-    if (hasEslint) {
-      fixes.push({
-        tool: 'Imports',
-        description: 'Organisation des imports',
-        fixable: true
-      });
-    }
-
-    if (config.isJson()) {
-      console.log(JSON.stringify(fixes, null, 2));
-      return;
-    }
-
-    // Affichage des fixes disponibles
-    if (fixes.length === 0) {
-      console.log(pc.green('✅ Aucun problème détecté!\n'));
-      return;
-    }
-
-    console.log(pc.bold('Fixes disponibles:\n'));
-    let totalFixable = 0;
-    fixes.forEach((fix, i) => {
-      const status = fix.fixable ? pc.green('[Fixable]') : pc.red('[Manuel]');
-      console.log(`  ${i + 1}. ${fix.tool}: ${fix.description || ''} ${status}`);
-      if (fix.errors !== undefined) console.log(pc.gray(`     Erreurs: ${fix.errors}, Avertissements: ${fix.warnings}`));
-      if (fix.fixable) totalFixable++;
-    });
-
-    console.log();
-    console.log(pc.cyan(`Total: ${totalFixable} fixable(s) sur ${fixes.length}\n`));
-
-    // Confirmation
-    const { confirm } = await prompts({
-      type: 'confirm',
-      name: 'confirm',
-      message: 'Appliquer les corrections automatiques?',
-      initial: false
-    });
-
-    if (!confirm) {
-      console.log(pc.yellow('\nOpération annulée.\n'));
-      return;
-    }
-
-    // Backup avant modifications
-    console.log(pc.yellow('📦 Création d\'une sauvegarde...'));
+        
     const timestamp = Date.now();
     const backupPath = path.join(backupDir, `backup-${timestamp}`);
     await fs.mkdir(backupPath, { recursive: true });
 
-    // Backup des fichiers modifiés
+    
     const filesToBackup = ['package.json', '.eslintrc.js', '.prettierrc', 'tsconfig.json'];
     for (const file of filesToBackup) {
       if (await hasFile(file)) {
@@ -151,12 +92,12 @@ async function fixCommand() {
 
     console.log(pc.green(`✅ Sauvegarde créée: ${backupPath}\n`));
 
-    // Application des fixes
+    
     console.log(pc.yellow('⚙️  Application des corrections...\n'));
 
     let appliedCount = 0;
 
-    // ESLint --fix
+    
     if (hasEslint) {
       console.log(pc.cyan('  ESLint --fix...'));
       try {
@@ -168,7 +109,7 @@ async function fixCommand() {
       }
     }
 
-    // Prettier --write
+    
     if (hasPrettier) {
       console.log(pc.cyan('  Prettier --write...'));
       try {
@@ -180,7 +121,7 @@ async function fixCommand() {
       }
     }
 
-    // Import organisation (via eslint-plugin-import ou simple)
+    
     if (hasEslint) {
       console.log(pc.cyan('  Organisation des imports...'));
       try {
@@ -196,7 +137,7 @@ async function fixCommand() {
     console.log(pc.green(`✨ ${appliedCount} correction(s) appliquée(s)!\n`));
     console.log(pc.cyan(`📦 Sauvegarde disponible: ${backupPath}\n`));
 
-    // Instructions de rollback
+    
     console.log(pc.yellow('Pour restaurer la sauvegarde:'));
     console.log(pc.gray(`  cp -r ${backupPath}/* .\n`));
 

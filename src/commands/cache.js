@@ -1,7 +1,4 @@
-/**
- * Commande: flash-dev cache
- * Gestion des caches (npm, pnpm, yarn, composer, docker, vite, next)
- */
+
 
 const pc = require('picocolors');
 const Logger = require('../core/logger');
@@ -133,7 +130,7 @@ async function detectCaches() {
   const root = process.cwd();
   const homeDir = require('os').homedir();
 
-  // npm cache
+  
   try {
     const npmCachePath = path.join(homeDir, '.npm', '_cacache');
     const npmSize = await getDirectorySize(npmCachePath);
@@ -147,7 +144,7 @@ async function detectCaches() {
     caches.npm = { exists: false, type: 'node' };
   }
 
-  // pnpm cache
+  
   try {
     const pnpmCachePath = path.join(homeDir, '.pnpm-store');
     const pnpmSize = await getDirectorySize(pnpmCachePath);
@@ -161,7 +158,7 @@ async function detectCaches() {
     caches.pnpm = { exists: false, type: 'node' };
   }
 
-  // yarn cache
+  
   try {
     const yarnCachePath = path.join(homeDir, '.yarn', 'cache');
     const yarnSize = await getDirectorySize(yarnCachePath);
@@ -175,7 +172,7 @@ async function detectCaches() {
     caches.yarn = { exists: false, type: 'node' };
   }
 
-  // Composer cache (PHP)
+  
   try {
     const composerCachePath = path.join(homeDir, '.composer', 'cache');
     const composerSize = await getDirectorySize(composerCachePath);
@@ -189,7 +186,7 @@ async function detectCaches() {
     caches.composer = { exists: false, type: 'php' };
   }
 
-  // Docker cache
+  
   try {
     execSync('docker info', { stdio: 'pipe' });
     const dockerSize = await getDockerCacheSize();
@@ -203,7 +200,7 @@ async function detectCaches() {
     caches.docker = { exists: false, type: 'docker' };
   }
 
-  // Vite cache (local)
+  
   try {
     const viteCachePath = path.join(root, 'node_modules', '.vite');
     const viteSize = await getDirectorySize(viteCachePath);
@@ -217,7 +214,7 @@ async function detectCaches() {
     caches.vite = { exists: false, type: 'build' };
   }
 
-  // Next.js cache (local)
+  
   try {
     const nextCachePath = path.join(root, '.next', 'cache');
     const nextSize = await getDirectorySize(nextCachePath);
@@ -288,7 +285,7 @@ async function cleanCache(name, info) {
   } else if (name === 'composer') {
     execSync('composer clear-cache', { stdio: 'pipe' });
   } else {
-    // Nettoyage manuel du dossier
+    
     await fs.rm(info.path, { recursive: true, force: true });
   }
 }

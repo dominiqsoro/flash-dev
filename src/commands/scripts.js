@@ -4,10 +4,7 @@ const pc = require('picocolors');
 const prompts = require('prompts');
 const { execSync } = require('child_process');
 
-/**
- * Commande: scripts
- * Propose un menu interactif pour lancer les scripts du package.json
- */
+
 async function scriptsCommand() {
   try {
     console.log(pc.cyan('\n📜 Exécuteur de scripts package.json...\n'));

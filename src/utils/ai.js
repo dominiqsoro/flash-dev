@@ -3,20 +3,12 @@ const pc = require('picocolors');
 
 const MAX_DIFF_LENGTH = 4000;
 
-/**
- * Initialise le client Gemini avec la clé API fournie
- * @param {string} apiKey - La clé API Gemini
- * @returns {GoogleGenerativeAI} Le client Gemini initialisé
- */
+
 function initGeminiClient(apiKey) {
   return new GoogleGenerativeAI(apiKey);
 }
 
-/**
- * Tronque le diff si nécessaire pour respecter les limites de tokens
- * @param {string} diff - Le diff à tronquer
- * @returns {string} Le diff tronqué si nécessaire
- */
+
 function truncateDiff(diff) {
   if (diff.length <= MAX_DIFF_LENGTH) {
     return diff;
@@ -26,19 +18,15 @@ function truncateDiff(diff) {
   return diff.substring(0, MAX_DIFF_LENGTH);
 }
 
-/**
- * Filtre les fichiers binaires et volumineux du diff
- * @param {string} diff - Le diff brut
- * @returns {string} Le diff filtré
- */
+
 function filterDiff(diff) {
   const lines = diff.split('\n');
   const filteredLines = lines.filter(line => {
-    // Ignorer les fichiers binaires
+    
     if (line.startsWith('Binary file')) {
       return false;
     }
-    // Ignorer les fichiers de configuration volumineux
+    
     if (line.includes('package-lock.json') || 
         line.includes('yarn.lock') || 
         line.includes('.min.js') ||
@@ -51,12 +39,7 @@ function filterDiff(diff) {
   return filteredLines.join('\n');
 }
 
-/**
- * Génère un message de commit conforme à Conventional Commits via Gemini
- * @param {GoogleGenerativeAI} client - Le client Gemini
- * @param {string} diff - Le diff des modifications
- * @returns {Promise<string>} Le message de commit généré
- */
+
 async function generateCommitMessage(client, diff) {
   try {
     const systemPrompt = `Tu es un expert en Conventional Commits. Génère un message de commit court et précis basé sur le diff fourni.
@@ -98,7 +81,7 @@ Règles:
     const result = await model.generateContent(prompt);
     const commitMessage = result.response.text().trim();
     
-    // Nettoyer le message (enlever les guillemets, etc.)
+    
     const cleanedMessage = commitMessage
       .replace(/^["']|["']$/g, '')
       .replace(/\n/g, ' ')

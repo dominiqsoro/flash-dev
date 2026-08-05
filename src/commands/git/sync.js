@@ -1,24 +1,17 @@
 const { execSync } = require('child_process');
 const pc = require('picocolors');
 
-/**
- * Commande: flash-dev sync
- * Synchroniser la branche locale avec la branche principale
- */
+
 async function syncCommand() {
   try {
     console.log(pc.cyan('flash-dev sync - Synchronisation avec la branche principale\n'));
     
-    // Vérifier si c'est un dépôt Git
-    try {
-      execSync('git rev-parse --git-dir', { encoding: 'utf-8' });
-    } catch (error) {
-      console.log(pc.red('Erreur: Ce dossier n\'est pas un dépôt Git.'));
+    
       console.log(pc.cyan('Initialisez avec: git init\n'));
       process.exit(1);
     }
     
-    // Obtenir la branche actuelle
+    
     const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
     const mainBranch = getMainBranch();
     
@@ -44,7 +37,7 @@ async function syncCommand() {
     
     console.log(pc.yellow('Sauvegarde des modifications locales...'));
     
-    // Stash les modifications
+    
     try {
       execSync('git stash push -m "flash-dev sync: auto-stash"', { encoding: 'utf-8' });
       console.log(pc.green('Modifications sauvegardées\n'));
@@ -52,7 +45,7 @@ async function syncCommand() {
       console.log(pc.yellow('Aucune modification à sauvegarder ou stash échoué\n'));
     }
     
-    // Switch sur la branche principale
+    
     console.log(pc.yellow(`Switch vers ${mainBranch}...`));
     try {
       execSync(`git checkout ${mainBranch}`, { encoding: 'utf-8' });
@@ -63,7 +56,7 @@ async function syncCommand() {
       process.exit(1);
     }
     
-    // Pull les derniers changements
+    
     console.log(pc.yellow('Pull des derniers changements...'));
     try {
       execSync('git pull --rebase', { encoding: 'utf-8' });
@@ -75,7 +68,7 @@ async function syncCommand() {
       process.exit(1);
     }
     
-    // Revenir sur la branche de travail
+    
     console.log(pc.yellow(`Retour sur ${currentBranch}...`));
     try {
       execSync(`git checkout ${currentBranch}`, { encoding: 'utf-8' });
@@ -86,7 +79,7 @@ async function syncCommand() {
       process.exit(1);
     }
     
-    // Rebase sur la branche principale
+    
     console.log(pc.yellow(`Rebase sur ${mainBranch}...`));
     try {
       execSync(`git rebase ${mainBranch}`, { encoding: 'utf-8' });
@@ -96,7 +89,7 @@ async function syncCommand() {
       console.log(pc.gray(error.message));
       console.log(pc.cyan('\nRésolvez les conflits et terminez avec: git rebase --continue\n'));
       
-      // Tenter de restaurer le stash
+      
       try {
         execSync('git stash pop', { encoding: 'utf-8' });
         console.log(pc.yellow('Modifications locales restaurées\n'));
@@ -107,7 +100,7 @@ async function syncCommand() {
       process.exit(1);
     }
     
-    // Restaurer le stash
+    
     console.log(pc.yellow('Restauration des modifications locales...'));
     try {
       execSync('git stash pop', { encoding: 'utf-8' });
@@ -125,16 +118,10 @@ async function syncCommand() {
   }
 }
 
-/**
- * Déterminer le nom de la branche principale
- */
+
 function getMainBranch() {
   try {
-    // Essayer 'main' d'abord
-    execSync('git rev-parse --verify main', { encoding: 'utf-8', stdio: 'pipe' });
-    return 'main';
-  } catch (error) {
-    // Si 'main' n'existe pas, utiliser 'master'
+    
     return 'master';
   }
 }

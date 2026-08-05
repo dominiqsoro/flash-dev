@@ -10,26 +10,19 @@ const ADS_MESSAGES = [
   "[Sponsor] Hébergez vos applications Node.js en 1 clic sur Hostinger - Code promo: 1BY1403",
 ];
 
-/**
- * Affiche un message de monétisation éthique de manière probabiliste
- * 30% de messages de soutien, 20% de publicités natives, 50% de silence total
- */
 function displayEthicalMonetization() {
-  const random = Math.random(); // Génère un nombre entre 0 et 1
+  const random = Math.random();
 
-  console.log(""); // Ligne vide pour aérer le terminal après l'action principale
+  console.log("");
 
-  if (random <= 0.30) {
-    // 30% de chance d'afficher un message de soutien communautaire
+  if (random <= 0.20) {
     const randomIndex = Math.floor(Math.random() * SPONSOR_MESSAGES.length);
     console.log(pc.gray(SPONSOR_MESSAGES[randomIndex]));
   } 
-  else if (random > 0.30 && random <= 0.50) {
-    // 20% de chance d'afficher une publicité native
+  else if (random > 0.20 && random <= 0.30) {
     const randomIndex = Math.floor(Math.random() * ADS_MESSAGES.length);
     console.log(pc.gray(ADS_MESSAGES[randomIndex]));
   }
-  // Les 50% du temps restants : Rien ne s'affiche, l'UX reste totalement pure.
 }
 
 module.exports = {

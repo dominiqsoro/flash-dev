@@ -1,18 +1,52 @@
 const pc = require('picocolors');
+const https = require('https');
 const { getApiKey } = require('../utils/config');
 const { isGitRepository, getCurrentBranch } = require('../utils/git');
 
-/**
- * Affiche l'état et la version du CLI
- */
-function versionCommand() {
+async function checkForUpdates(currentVersion) {
+  return new Promise((resolve) => {
+    https.get('https://registry.npmjs.org/flash-dev', (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        try {
+          const packageInfo = JSON.parse(data);
+          const latestVersion = packageInfo['dist-tags'].latest;
+          resolve(latestVersion);
+        } catch (error) {
+          resolve(null);
+        }
+      });
+    }).on('error', () => resolve(null));
+  });
+}
+
+async function versionCommand(options = {}) {
   try {
-    let VERSION = '2.0.0';
+    let VERSION = '3.0.0';
     try {
       const packageJson = require('../../package.json');
       VERSION = packageJson.version;
     } catch (error) {
-      // Si package.json n'est pas lisible, utiliser la version par défaut
+    }
+
+    if (options.check) {
+      console.log(pc.cyan('Checking for updates...\n'));
+      const latestVersion = await checkForUpdates(VERSION);
+      
+      if (latestVersion) {
+        if (latestVersion !== VERSION) {
+          console.log(pc.green(`Current version: ${VERSION}`));
+          console.log(pc.yellow(`Latest version: ${latestVersion}`));
+          console.log(pc.cyan('\nUpdate available! Run:'));
+          console.log(pc.white('  npm install -g flash-dev@latest\n'));
+        } else {
+          console.log(pc.green(`You're on the latest version: ${VERSION}\n`));
+        }
+      } else {
+        console.log(pc.yellow('Unable to check for updates. Please try again later.\n'));
+      }
+      return;
     }
 
     console.log(pc.cyan('===================================================================='));
@@ -20,9 +54,8 @@ function versionCommand() {
     console.log(pc.cyan('====================================================================\n'));
     
     console.log(pc.green('Version:'), pc.white(VERSION));
-    console.log(pc.green('Description:'), pc.white('Boîte à outils d\'automatisation intelligente en ligne de commande'));
+    console.log(pc.green('Description:'), pc.white('Copilote intelligent pour votre terminal'));
     
-    // État de la clé API
     const apiKey = getApiKey();
     if (apiKey) {
       console.log(pc.green('Clé API Gemini:'), pc.white('Configurée (IA active)'));
@@ -30,7 +63,6 @@ function versionCommand() {
       console.log(pc.green('Clé API Gemini:'), pc.yellow('Non configurée (mode basique disponible)'));
     }
     
-    // État du dépôt Git
     if (isGitRepository()) {
       try {
         const branch = getCurrentBranch();
@@ -46,7 +78,7 @@ function versionCommand() {
     console.log(pc.green('Plateforme:'), pc.white(process.platform));
     
     console.log(pc.cyan('\n===================================================================='));
-    console.log(pc.cyan('📚  Toutes les fonctionnalités disponibles (v2.0.0)'));
+    console.log(pc.cyan('📚  Toutes les fonctionnalités disponibles (v3.0.0)'));
     console.log(pc.cyan('===================================================================='));
 
     console.log(pc.bold(pc.yellow('\n🔄  Workflow Git & Caches')));
@@ -61,6 +93,12 @@ function versionCommand() {
     console.log(pc.green('  env               ') + pc.white('Génère un fichier .env.example assaini'));
     
     console.log(pc.bold(pc.yellow('\n⚙️  Utilitaires Système Génériques')));
+    console.log(pc.green('  doctor            ') + pc.white('Diagnostic complet de l\'environnement'));
+    console.log(pc.green('  analyze           ') + pc.white('Audit complet du projet (Architecture, Stack, Dépendances)'));
+    console.log(pc.green('  deps [--fix]      ') + pc.white('Analyse les dépendances (Unused, Vulnérabilités)'));
+    console.log(pc.green('  explain [error]   ') + pc.white('Explique une erreur avec IA (Gemini)'));
+    console.log(pc.green('  fix               ') + pc.white('Auto-correction: ESLint, TypeScript, formatting'));
+    console.log(pc.green('  cache [list/stats/clean] ') + pc.white('Gestion des caches (npm, pnpm, yarn, docker)'));
     console.log(pc.green('  create            ') + pc.white('Configure un projet standardisé (next, laravel, vue)'));
     console.log(pc.green('  size              ') + pc.white('Calcule le poids réel du code source (sans .gitignore)'));
     console.log(pc.green('  scripts           ') + pc.white('Menu interactif pour lancer les scripts package.json'));

@@ -131,6 +131,12 @@ Flash-dev uses Google's **Gemini 2.5 Flash** model to generate intelligent commi
 | Command | Description |
 |---|---|
 | `flash-dev push` | Stages, commits (AI-assisted or basic), and pushes your changes |
+| `flash-dev doctor` | Complete environment diagnostics (Git, Node, Docker, DB, Framework) |
+| `flash-dev analyze` | Project audit with architecture scoring and security analysis |
+| `flash-dev deps [--fix]` | Dependency analysis (unused, vulnerabilities, outdated) |
+| `flash-dev explain [error]` | AI-powered error explanation with local fallback |
+| `flash-dev fix` | Auto-correction for ESLint, TypeScript, imports, formatting |
+| `flash-dev cache [list/stats/clean]` | Unified cache management (npm, pnpm, yarn, docker) |
 | `flash-dev scan` | Scans the project for security vulnerabilities |
 | `flash-dev env` | Generates a sanitized `.env.example` from your local `.env` |
 | `flash-dev secure` | Audits staged changes for secrets before committing |
@@ -150,10 +156,133 @@ flash-dev push
 1. **Check** — verifies the folder is a valid Git repository
 2. **Index** — runs `git add .` to stage all files
 3. **Capture** — captures the changes via `git diff --cached`
-4. **Generate** — sends the diff to Gemini to generate a Conventional Commits message (if an API key is configured)
+4. **Generate** — sends the diff to Gemini to generate a Conventional Commits message (if an API key is configured), or uses intelligent basic mode
 5. **Validate** — displays the generated message and asks for confirmation
 6. **Commit** — runs `git commit` with the validated message
 7. **Push** — automatically detects the branch and runs `git push`
+
+**Basic mode (without API key):**
+Flash-dev analyzes file paths, extensions, and code patterns to generate intelligent commit messages without requiring an AI API key.
+
+#### Environment diagnostics: `flash-dev doctor`
+
+```bash
+flash-dev doctor
+```
+
+Performs a complete health check of your development environment:
+
+- **Git**: Installation, repository status, branch, remote, uncommitted changes
+- **Node.js**: Version, npm/pnpm/yarn/bun availability, package.json detection
+- **Docker**: Engine status, containers, images, compose availability
+- **PHP**: Version, Composer, Laravel/Symfony detection
+- **Database**: MySQL, PostgreSQL, Redis, SQLite status
+- **Framework**: Automatic detection (Next.js, React, Vue, Laravel, etc.)
+
+Output includes status indicators (✓ success, ⚠ warning, ✗ error) and actionable suggestions.
+
+#### Project analysis: `flash-dev analyze`
+
+```bash
+flash-dev analyze
+```
+
+Comprehensive project audit:
+
+- **Framework detection**: Identifies the technology stack
+- **Architecture scoring**: AI-powered or static analysis of code structure
+- **Dependency analysis**: Package count and health
+- **Security audit**: Basic security checks
+- **Size analysis**: Project footprint calculation
+
+Supports JSON output for automation:
+```bash
+flash-dev analyze --json
+```
+
+#### Dependency management: `flash-dev deps`
+
+```bash
+flash-dev deps
+```
+
+Analyzes project dependencies:
+
+- **Unused packages**: Detects dependencies not imported in source code
+- **Vulnerabilities**: Runs `npm audit` to identify security issues
+- **Outdated packages**: Shows packages with newer versions available
+- **Duplicates**: Identifies duplicate dependency declarations
+
+Auto-fix mode:
+```bash
+flash-dev deps --fix
+```
+
+Automatically runs `npm audit fix` and removes unused packages after confirmation.
+
+#### Error explanation: `flash-dev explain`
+
+```bash
+flash-dev explain "TypeError: Cannot read property 'x' of undefined"
+```
+
+AI-powered error analysis:
+
+- **Root cause**: Explains why the error occurred
+- **Solution**: Provides actionable fixes
+- **Example**: Shows corrected code examples
+- **Documentation**: Links to relevant documentation
+
+Fallback to local knowledge base if AI is unavailable.
+
+From log file:
+```bash
+flash-dev explain --file error.log
+```
+
+#### Auto-fix: `flash-dev fix`
+
+```bash
+flash-dev fix
+```
+
+Automatically fixes common code issues:
+
+- **ESLint**: Runs `eslint --fix` for linting issues
+- **TypeScript**: Fixes TypeScript errors
+- **Imports**: Organizes and removes unused imports
+- **Formatting**: Applies Prettier formatting
+
+Creates automatic backups before applying fixes:
+```
+.flash-dev/backups/backup-1691234567890/
+```
+
+#### Cache management: `flash-dev cache`
+
+```bash
+flash-dev cache list
+```
+
+Lists all detected caches with sizes:
+- npm, pnpm, yarn
+- Composer
+- Docker
+- Vite, Next.js
+
+Statistics:
+```bash
+flash-dev cache stats
+```
+
+Shows total cache size and per-tool breakdown.
+
+Clean caches:
+```bash
+flash-dev cache clean
+```
+
+Interactive confirmation before deletion.
 
 #### Security analysis: `flash-dev scan`
 

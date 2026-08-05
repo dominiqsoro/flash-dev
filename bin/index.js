@@ -171,6 +171,7 @@ program
 
 program
   .command('version')
+  .option('--check', 'Check for updates on npm')
   .description('Affiche l\'état du système, configurations et version')
   .action(versionCommand);
 

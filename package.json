@@ -1,7 +1,7 @@
 {
   "name": "flash-dev",
-  "version": "2.0.0",
-  "description": "Boîte à outils d'automatisation intelligente en ligne de commande (CLI) pour développeurs — 100% Gratuit & Open-Source",
+  "version": "3.0.0",
+  "description": "Copilote intelligent pour votre terminal — Automatisez Git, sécurisez vos commits, analysez vos projets — 100% Gratuit & Open-Source",
   "main": "index.js",
   "bin": {
     "flash-dev": "./bin/index.js"
@@ -44,7 +44,6 @@
     "bin",
     "src",
     "README.md",
-    "CHANGELOG.md",
     "LICENSE"
   ],
   "dependencies": {
@@ -55,5 +54,13 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/**/*.test.js"
+    ]
   }
 }

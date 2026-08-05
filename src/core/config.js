@@ -1,7 +1,4 @@
-/**
- * Configuration centralisée pour Flash-dev
- * Gère les options globales et la persistance
- */
+
 
 const path = require('path');
 const fs = require('fs');
@@ -16,7 +13,9 @@ class Config {
       defaultBranch: 'main',
       autoDetect: true,
       dryRun: false,
-      verbose: false
+      verbose: false,
+      json: false,
+      quiet: false
     };
     this.config = { ...this.defaults };
     this._load();
@@ -30,7 +29,7 @@ class Config {
         this.config = { ...this.defaults, ...loaded };
       }
     } catch (error) {
-      // Utiliser les défauts si le fichier est corrompu
+      
     }
   }
 
@@ -41,8 +40,8 @@ class Config {
       }
       fs.writeFileSync(this.configFile, JSON.stringify(this.config, null, 2));
     } catch (error) {
-      // Silencer les erreurs d'écriture
-    }
+      
+  }
   }
 
   get(key) {
@@ -54,33 +53,20 @@ class Config {
     this._save();
   }
 
-  getAll() {
-    return { ...this.config };
-  }
-
-  reset() {
-    this.config = { ...this.defaults };
-    this._save();
-  }
-
-  isDryRun() {
-    return this.config.dryRun || process.argv.includes('--dry-run');
-  }
-
   isVerbose() {
-    return this.config.verbose || process.argv.includes('--verbose') || process.argv.includes('-v');
+    return this.config.verbose;
   }
 
   isJson() {
-    return process.argv.includes('--json');
+    return this.config.json;
   }
 
   isQuiet() {
-    return process.argv.includes('--quiet') || process.argv.includes('-q');
+    return this.config.quiet;
   }
 }
 
-// Singleton instance
+
 const configInstance = new Config();
 
 module.exports = configInstance;

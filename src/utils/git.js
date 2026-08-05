@@ -1,13 +1,7 @@
 const { execSync } = require('child_process');
 const pc = require('picocolors');
 
-/**
- * Exécute une commande Git de manière sécurisée avec try/catch
- * @param {string} command - La commande Git à exécuter
- * @param {Object} options - Options pour execSync
- * @returns {string} La sortie de la commande
- * @throws {Error} Si la commande échoue
- */
+
 function execGitCommand(command, options = {}) {
   try {
     const result = execSync(command, {
@@ -21,43 +15,35 @@ function execGitCommand(command, options = {}) {
   }
 }
 
-/**
- * Vérifie si le dossier actuel est un dépôt Git valide
- * @returns {boolean} True si c'est un dépôt Git, false sinon
- */
+
 function isGitRepository() {
   try {
-    execGitCommand('git rev-parse --git-dir');
+    execGitCommand('git rev-parse --is-inside-work-tree');
     return true;
   } catch (error) {
     return false;
   }
 }
 
-/**
- * Exécute git add . pour indexer tous les fichiers modifiés/créés
- * @returns {string} La sortie de la commande
- */
+
 function gitAddAll() {
-  return execGitCommand('git add .');
+  try {
+    return execGitCommand('git add .');
+  } catch (error) {
+    throw new Error(`Échec de l'indexation: ${error.message}`);
+  }
 }
 
-/**
- * Récupère le diff des fichiers indexés (staged)
- * @returns {string} Le diff des modifications
- */
+
 function getStagedDiff() {
   try {
     return execGitCommand('git diff --cached');
   } catch (error) {
-    throw new Error('Impossible de récupérer le diff des fichiers indexés');
+    throw new Error(`Échec de la récupération du diff: ${error.message}`);
   }
 }
 
-/**
- * Vérifie s'il y a des modifications indexées
- * @returns {boolean} True si des modifications sont indexées, false sinon
- */
+
 function hasStagedChanges() {
   try {
     const diff = getStagedDiff();
@@ -67,11 +53,7 @@ function hasStagedChanges() {
   }
 }
 
-/**
- * Exécute git commit avec le message fourni
- * @param {string} message - Le message de commit
- * @returns {string} La sortie de la commande
- */
+
 function gitCommit(message) {
   try {
     return execGitCommand(`git commit -m "${message}"`);
@@ -80,10 +62,7 @@ function gitCommit(message) {
   }
 }
 
-/**
- * Récupère le nom de la branche courante
- * @returns {string} Le nom de la branche
- */
+
 function getCurrentBranch() {
   try {
     return execGitCommand('git rev-parse --abbrev-ref HEAD');
@@ -92,11 +71,7 @@ function getCurrentBranch() {
   }
 }
 
-/**
- * Exécute git push vers la branche courante
- * @param {string} branch - Le nom de la branche (optionnel, détecté automatiquement si non fourni)
- * @returns {string} La sortie de la commande
- */
+
 function gitPush(branch = null) {
   try {
     const targetBranch = branch || getCurrentBranch();
@@ -106,10 +81,7 @@ function gitPush(branch = null) {
   }
 }
 
-/**
- * Récupère le statut Git actuel
- * @returns {string} La sortie de git status
- */
+
 function gitStatus() {
   try {
     return execGitCommand('git status --short');
@@ -118,10 +90,7 @@ function gitStatus() {
   }
 }
 
-/**
- * Affiche un message d'erreur Git vulgarisé
- * @param {string} errorMessage - Le message d'erreur original
- */
+
 function displayGitError(errorMessage) {
   console.log(pc.red('\n❌ Oups ! Une erreur Git est survenue:'));
   console.log(pc.yellow(errorMessage));

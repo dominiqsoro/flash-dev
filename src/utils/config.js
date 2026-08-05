@@ -8,19 +8,14 @@ const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 
 const CONFIG_KEY = 'geminiApiKey';
 
-/**
- * Assure que le répertoire de configuration existe
- */
+
 function ensureConfigDir() {
   if (!fs.existsSync(CONFIG_DIR)) {
     fs.mkdirSync(CONFIG_DIR, { recursive: true });
   }
 }
 
-/**
- * Lit la configuration depuis le fichier
- * @returns {Object} La configuration
- */
+
 function readConfig() {
   try {
     if (fs.existsSync(CONFIG_FILE)) {
@@ -28,52 +23,30 @@ function readConfig() {
       return JSON.parse(data);
     }
   } catch (error) {
-    // Si le fichier est corrompu, on retourne un objet vide
+    
   }
   return {};
 }
 
-/**
- * Écrit la configuration dans le fichier
- * @param {Object} configData - Les données de configuration
- */
+
 function writeConfig(configData) {
   ensureConfigDir();
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(configData, null, 2));
-  // Sur Windows, on utilise chmod si disponible, sinon on ignore
+  
   try {
     fs.chmodSync(CONFIG_FILE, 0o600);
   } catch (error) {
-    // Ignore les erreurs de chmod sur Windows
+    
   }
 }
 
-/**
- * Récupère la clé API Gemini
- * Priorité: Variable d'environnement > Fichier de configuration local
- * @returns {string|null} La clé API ou null si non trouvée
- */
+
 function getApiKey() {
-  // Priorité 1: Variable d'environnement
-  const envKey = process.env.GEMINI_API_KEY;
-  if (envKey && envKey.trim()) {
-    return envKey.trim();
-  }
-
-  // Priorité 2: Fichier de configuration local
   const configData = readConfig();
-  const storedKey = configData[CONFIG_KEY];
-  if (storedKey && storedKey.trim()) {
-    return storedKey.trim();
-  }
-
-  return null;
+  return configData[CONFIG_KEY] || null;
 }
 
-/**
- * Sauvegarde la clé API dans le fichier de configuration local
- * @param {string} apiKey - La clé API à sauvegarder
- */
+
 function saveApiKey(apiKey) {
   if (!apiKey || !apiKey.trim()) {
     throw new Error('Clé API invalide');

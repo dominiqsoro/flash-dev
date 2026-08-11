@@ -49,10 +49,11 @@ class Logger {
     }
 
     const prefix = colorFn(`[${level.toUpperCase()}]`);
-    console.log(`${prefix} ${message}`);
+    const write = level === 'error' ? console.error : console.log;
+    write(`${prefix} ${message}`);
     
     if (data && this.verbose) {
-      console.log(pc.gray(JSON.stringify(data, null, 2)));
+      write(pc.gray(JSON.stringify(data, null, 2)));
     }
   }
 

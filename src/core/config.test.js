@@ -1,4 +1,5 @@
-const Config = require('./config');
+const configModule = require('./config');
+const Config = configModule.Config;
 
 describe('Config', () => {
   let config;
@@ -14,26 +15,26 @@ describe('Config', () => {
     expect(config.get('quiet')).toBe(false);
   });
 
-  test('should set and get values', () => {
-    config.set('dryRun', true);
+  test('should set and get values in memory', () => {
+    config.config.dryRun = true;
     expect(config.get('dryRun')).toBe(true);
   });
 
   test('should check verbose mode', () => {
     expect(config.isVerbose()).toBe(false);
-    config.set('verbose', true);
+    config.config.verbose = true;
     expect(config.isVerbose()).toBe(true);
   });
 
   test('should check json mode', () => {
     expect(config.isJson()).toBe(false);
-    config.set('json', true);
+    config.config.json = true;
     expect(config.isJson()).toBe(true);
   });
 
   test('should check quiet mode', () => {
     expect(config.isQuiet()).toBe(false);
-    config.set('quiet', true);
+    config.config.quiet = true;
     expect(config.isQuiet()).toBe(true);
   });
 });

@@ -1,11 +1,15 @@
 const fs = require('fs').promises;
-const fsSync = require('fs');
 const path = require('path');
 const pc = require('picocolors');
 const prompts = require('prompts');
+const {
+  formatBytes,
+  getDirectorySize,
+  deleteDirectory,
+  isOlderThan
+} = require('../utils/fs-helpers');
 
-
-const TARGET_DIRECTORIES = [
+const TARGET_DIRECTORIES = new Set([
   'node_modules',
   '.next',
   '.nuxt',
@@ -18,94 +22,112 @@ const TARGET_DIRECTORIES = [
   'env',
   '__pycache__',
   '.pytest_cache'
-];
+]);
 
+const SKIP_DIRECTORIES = new Set(['.git', '.svn', '.hg']);
 
-function formatSize(bytes) {
-  if (bytes === 0) return '0 B';
-  
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const k = 1024;
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + units[i];
-}
-
-
+/**
+ * flash-dev clean — free disk space by removing heavy build/cache folders
+ */
 async function cleanCommand() {
   try {
     console.log(pc.cyan('flash-dev clean - Libérateur d\'espace disque universel\n'));
-    
+
     const currentDir = process.cwd();
     console.log(pc.yellow(`Analyse du répertoire: ${currentDir}\n`));
-    
+
     const targetDirs = [];
     let totalSize = 0;
-    
-    
+
     async function scanDirectory(dir) {
+      let items;
       try {
-        const items = await fs.readdir(dir);
-        
-        for (const item of items) {
-          const itemPath = path.join(dir, item);
-          const stats = await fs.stat(itemPath);
-          
-          if (stats.isDirectory()) {
-            
+        items = await fs.readdir(dir);
+      } catch {
+        return;
+      }
+
+      for (const item of items) {
+        if (SKIP_DIRECTORIES.has(item)) continue;
+
+        const itemPath = path.join(dir, item);
+        let stats;
+        try {
+          stats = await fs.stat(itemPath);
+        } catch {
+          continue;
+        }
+
+        if (!stats.isDirectory()) continue;
+
+        if (TARGET_DIRECTORIES.has(item)) {
+          const size = await getDirectorySize(itemPath);
+          if (size > 0) {
+            targetDirs.push({
+              path: itemPath,
+              name: item,
+              size,
+              isOld: await isOlderThan(itemPath)
+            });
+            totalSize += size;
+          }
+          // Do not recurse into heavy target folders
+          continue;
+        }
+
+        await scanDirectory(itemPath);
       }
     }
-    
+
     await scanDirectory(currentDir);
-    
+
     if (targetDirs.length === 0) {
       console.log(pc.green('Aucun dossier cible trouvé à nettoyer.\n'));
-      process.exit(0);
+      return;
     }
-    
-    
+
     console.log(pc.cyan('Dossiers trouvés:'));
     console.log(pc.gray('-------------------'));
-    
-    targetDirs.forEach(dir => {
+
+    for (const dir of targetDirs) {
       const ageIndicator = dir.isOld ? '(old)' : '';
-      console.log(pc.gray(`  ${formatSize(dir.size).padEnd(10)} ${dir.name} ${ageIndicator}`));
-    });
-    
+      console.log(pc.gray(`  ${formatBytes(dir.size).padEnd(10)} ${dir.name} ${ageIndicator}`));
+    }
+
     console.log(pc.gray('-------------------'));
-    console.log(pc.cyan(`Espace total à libérer: ${formatSize(totalSize)}\n`));
-    
-    
+    console.log(pc.cyan(`Espace total à libérer: ${formatBytes(totalSize)}\n`));
+
     const { confirm } = await prompts({
       type: 'confirm',
       name: 'confirm',
       message: 'Voulez-vous supprimer ces dossiers?',
       initial: false
     });
-    
+
     if (!confirm) {
       console.log(pc.yellow('\nOpération annulée.\n'));
-      process.exit(0);
+      return;
     }
-    
-    
+
     console.log(pc.yellow('Suppression en cours...\n'));
-    
+
     let deletedCount = 0;
     let failedCount = 0;
-    
+    let freedSize = 0;
+
     for (const dir of targetDirs) {
       if (await deleteDirectory(dir.path)) {
         deletedCount++;
+        freedSize += dir.size;
         console.log(pc.green(`  Supprimé: ${dir.name}`));
       } else {
         failedCount++;
+        console.log(pc.yellow(`  Impossible de supprimer: ${dir.path}`));
       }
     }
-    
+
     console.log(pc.cyan(`\nTerminé: ${deletedCount} dossiers supprimés, ${failedCount} échecs`));
-    console.log(pc.cyan(`Espace libéré: ${formatSize(totalSize)}\n`));
-    
+    console.log(pc.cyan(`Espace libéré: ${formatBytes(freedSize)}\n`));
   } catch (error) {
     console.log(pc.red(`\nErreur: ${error.message}\n`));
     process.exit(1);

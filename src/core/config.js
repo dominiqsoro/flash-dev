@@ -39,9 +39,9 @@ class Config {
         fs.mkdirSync(this.configDir, { recursive: true });
       }
       fs.writeFileSync(this.configFile, JSON.stringify(this.config, null, 2));
-    } catch (error) {
-      
-  }
+    } catch {
+      // Ignore persistence errors
+    }
   }
 
   get(key) {
@@ -70,3 +70,4 @@ class Config {
 const configInstance = new Config();
 
 module.exports = configInstance;
+module.exports.Config = Config;

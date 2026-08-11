@@ -23,15 +23,13 @@ async function doctorCommand() {
   try {
     console.log(pc.cyan('\n🔬 Flash-dev Doctor - Diagnostic de l\'environnement\n'));
 
-    
-    const [git, node, docker, php, database, framework] = await Promise.all([
-      new GitDetector().detect(),
-      new NodeDetector().detect(),
-      new DockerDetector().detect(),
-      new PHPDetector().detect(),
-      new DatabaseDetector().detect(),
-      new FrameworkDetector().detect()
-    ]);
+    // Sequential probes avoid Windows hangs when many CLIs spawn at once
+    const git = await new GitDetector().detect();
+    const node = await new NodeDetector().detect();
+    const docker = await new DockerDetector().detect();
+    const php = await new PHPDetector().detect();
+    const database = await new DatabaseDetector().detect();
+    const framework = await new FrameworkDetector().detect();
 
     const results = {
       git,
@@ -54,7 +52,7 @@ async function doctorCommand() {
     
     console.log(pc.bold('Git'));
     if (git.installed) {
-      console.log(pc.green(`  ✔ Git installé: ${git.node || 'OK'}`));
+      console.log(pc.green(`  ✔ Git installé`));
       if (git.repository) {
         console.log(pc.green(`  ✔ Dépôt Git: ${git.status}`));
         console.log(pc.gray(`    Branche: ${git.currentBranch}`));

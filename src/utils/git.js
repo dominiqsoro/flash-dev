@@ -1,4 +1,4 @@
-const { execSync } = require('child_process');
+const { execSync, spawnSync } = require('child_process');
 const pc = require('picocolors');
 
 
@@ -13,6 +13,29 @@ function execGitCommand(command, options = {}) {
   } catch (error) {
     throw new Error(`Git command failed: ${command}\n${error.message}`);
   }
+}
+
+/**
+ * Run git with discrete argv (avoids shell injection).
+ * @param {string[]} args
+ * @returns {string}
+ */
+function execGitArgs(args) {
+  const result = spawnSync('git', args, {
+    encoding: 'utf-8',
+    stdio: ['ignore', 'pipe', 'pipe']
+  });
+
+  if (result.error) {
+    throw new Error(`Git command failed: git ${args.join(' ')}\n${result.error.message}`);
+  }
+
+  if (result.status !== 0) {
+    const detail = (result.stderr || result.stdout || '').trim();
+    throw new Error(`Git command failed: git ${args.join(' ')}\n${detail}`);
+  }
+
+  return (result.stdout || '').trim();
 }
 
 
@@ -56,9 +79,27 @@ function hasStagedChanges() {
 
 function gitCommit(message) {
   try {
-    return execGitCommand(`git commit -m "${message}"`);
+    return execGitArgs(['commit', '-m', String(message)]);
   } catch (error) {
     throw new Error(`Échec du commit: ${error.message}`);
+  }
+}
+
+/**
+ * Resolve the repository main branch (main preferred, then master).
+ * @returns {string}
+ */
+function getMainBranch() {
+  try {
+    execGitArgs(['rev-parse', '--verify', 'main']);
+    return 'main';
+  } catch {
+    try {
+      execGitArgs(['rev-parse', '--verify', 'master']);
+      return 'master';
+    } catch {
+      return 'main';
+    }
   }
 }
 
@@ -102,11 +143,13 @@ function displayGitError(errorMessage) {
 
 module.exports = {
   execGitCommand,
+  execGitArgs,
   isGitRepository,
   gitAddAll,
   getStagedDiff,
   hasStagedChanges,
   gitCommit,
+  getMainBranch,
   getCurrentBranch,
   gitPush,
   gitStatus,

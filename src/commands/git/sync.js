@@ -1,15 +1,18 @@
 const { execSync } = require('child_process');
 const pc = require('picocolors');
+const fs = require('fs');
+const { getMainBranch } = require('../../utils/git');
 
 
 async function syncCommand() {
   try {
-    console.log(pc.cyan('flash-dev sync - Synchronisation avec la branche principale\n'));
-    
-    
-      console.log(pc.cyan('Initialisez avec: git init\n'));
-      process.exit(1);
-    }
+  console.log(pc.cyan('flash-dev sync - Synchronisation avec la branche principale\n'));
+
+  if (!fs.existsSync('.git')) {
+    console.log(pc.red('Ce dossier n\'est pas un dépôt Git.'));
+    console.log(pc.cyan('Initialisez avec: git init\n'));
+    process.exit(1);
+  }
     
     
     const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
@@ -118,12 +121,5 @@ async function syncCommand() {
   }
 }
 
-
-function getMainBranch() {
-  try {
-    
-    return 'master';
-  }
-}
 
 module.exports = syncCommand;

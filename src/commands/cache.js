@@ -7,6 +7,7 @@ const { execSync } = require('child_process');
 const fs = require('fs').promises;
 const path = require('path');
 const prompts = require('prompts');
+const { formatBytes, getDirectorySize } = require('../utils/fs-helpers');
 
 async function cacheCommand(action = 'list') {
   const logger = Logger.create({
@@ -231,27 +232,6 @@ async function detectCaches() {
   return caches;
 }
 
-async function getDirectorySize(dirPath) {
-  let totalSize = 0;
-  
-  async function calculateSize(currentPath) {
-    try {
-      const stats = await fs.stat(currentPath);
-      if (stats.isDirectory()) {
-        const items = await fs.readdir(currentPath);
-        for (const item of items) {
-          await calculateSize(path.join(currentPath, item));
-        }
-      } else {
-        totalSize += stats.size;
-      }
-    } catch (error) {}
-  }
-  
-  await calculateSize(dirPath);
-  return totalSize;
-}
-
 async function getDockerCacheSize() {
   try {
     const output = execSync('docker images -f "dangling=true" --format "{{.Size}}"', {
@@ -285,17 +265,8 @@ async function cleanCache(name, info) {
   } else if (name === 'composer') {
     execSync('composer clear-cache', { stdio: 'pipe' });
   } else {
-    
     await fs.rm(info.path, { recursive: true, force: true });
   }
-}
-
-function formatBytes(bytes) {
-  if (bytes === 0) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const k = 1024;
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + units[i];
 }
 
 module.exports = cacheCommand;

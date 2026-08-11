@@ -8,8 +8,9 @@ const scanCommand = require('./scan');
 const FrameworkDetector = require('../detectors/framework');
 const NodeDetector = require('../detectors/node');
 const GitDetector = require('../detectors/git');
-const { initGeminiClient, generateCommitMessage } = require('../utils/ai');
+const { initGeminiClient } = require('../utils/ai');
 const { getApiKey } = require('../utils/config');
+const { formatBytes } = require('../utils/fs-helpers');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -174,14 +175,6 @@ Format JSON: {"score": number, "suggestions": ["..."], "improvements": ["..."]}`
     }
     throw error;
   }
-}
-
-function formatBytes(bytes) {
-  if (bytes === 0) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB'];
-  const k = 1024;
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + units[i];
 }
 
 module.exports = analyzeCommand;

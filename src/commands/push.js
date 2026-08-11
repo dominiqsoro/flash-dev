@@ -16,7 +16,7 @@ const {
   generateBasicCommitMessage,
   displayCommitMessage 
 } = require('../utils/ai');
-const { displayEthicalMonetization } = require('../utils/monetization');
+const { displayMonetizationMessage } = require('../utils/monetization');
 
 /**
  * Commande principale: flash-dev push
@@ -119,7 +119,7 @@ async function pushCommand() {
       console.log(pc.cyan('Votre code a été publié avec succès!'));
       
       
-      displayEthicalMonetization();
+      displayMonetizationMessage();
       
       console.log();
     } catch (error) {

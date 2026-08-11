@@ -146,6 +146,11 @@ program
   .action(lazy('../src/commands/clean'));
 
 program
+  .command('config [section] [action] [value]')
+  .description('Configure flash-dev (monetization opt-out, etc.)')
+  .action(lazy('../src/commands/config'));
+
+program
   .command('status')
   .description('Affiche l\'état du système, configurations et version')
   .action(lazy('../src/commands/version'));
@@ -196,6 +201,7 @@ program.action(() => {
 
   console.log(pc.bold(pc.yellow('\nℹ️  Infos Système')));
   console.log(pc.green('  flash-dev version           ') + pc.white('Affiche l\'état du système et configurations'));
+  console.log(pc.green('  flash-dev config            ') + pc.white('Configure la monétisation (opt-out inclus)'));
   console.log(pc.green('  flash-dev --help            ') + pc.white('Affiche l\'aide globale de Commander\n'));
 
   console.log(pc.cyan('Pour commencer, tapez : ') + pc.bold(pc.white('flash-dev doctor')) + pc.cyan(' ou ') + pc.bold(pc.white('flash-dev push')) + '\n');

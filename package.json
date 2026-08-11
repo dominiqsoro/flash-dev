@@ -4,7 +4,7 @@
   "description": "Copilote intelligent pour votre terminal — Automatisez Git, sécurisez vos commits, analysez vos projets — 100% Gratuit & Open-Source",
   "main": "index.js",
   "bin": {
-    "flash-dev": "./bin/index.js"
+    "flash-dev": "bin/index.js"
   },
   "scripts": {
     "lint": "node scripts/syntax-check.js",

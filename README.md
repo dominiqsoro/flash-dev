@@ -39,6 +39,7 @@ Flash-dev automates your Git workflow in a single command: `git add` + AI-powere
 - [Contributing](#en-contributing)
 - [License](#en-license)
 - [Support the Project](#en-support-project)
+- [Monetization](#en-monetization)
 - [Support](#en-support)
 - [Changelog](#en-changelog)
 - [Roadmap](#en-roadmap)
@@ -530,6 +531,29 @@ Flash-dev is **100% free**, thanks to the BYOK model. If the tool saves you time
 - **Support** on Buy Me a Coffee: [dominiqsoro](https://www.buymeacoffee.com/dominiqsoro)
 - **Report** bugs or suggest features
 
+<a name="en-monetization"></a>
+### Monetization
+
+Flash-dev is free and open source.
+
+To help fund development, Flash-dev may occasionally display a small sponsored or project-support message after a successful command (`push`, `scan`).
+
+- No telemetry
+- No tracking
+- No network requests for ads
+- No project data collection
+- Never blocks a command
+- Optional opt-out
+
+```bash
+flash-dev config monetization off
+flash-dev config monetization on
+flash-dev config monetization ads off
+flash-dev config monetization support off
+```
+
+Source of truth: [`src/utils/monetization.js`](src/utils/monetization.js)
+
 <a name="en-support"></a>
 ### Support
 
@@ -645,6 +669,7 @@ Flash-dev automatise votre workflow Git en une seule commande : `git add` + comm
 - [Contribuer](#fr-contributing)
 - [Licence](#fr-license)
 - [Soutenir le projet](#fr-support-project)
+- [Monétisation](#fr-monetization)
 - [Assistance](#fr-support)
 - [Feuille de route](#fr-roadmap)
 
@@ -920,6 +945,29 @@ Flash-dev est **100 % gratuit**, grâce au modèle BYOK. Si l'outil vous fait ga
 - **Offrir un café** sur Ko-fi : [dominiqsoro](https://ko-fi.com/dominiqsoro)
 - **Soutenir** sur Buy Me a Coffee : [dominiqsoro](https://www.buymeacoffee.com/dominiqsoro)
 - **Signaler** des bugs ou proposer des fonctionnalités
+
+<a name="fr-monetization"></a>
+### Monétisation
+
+Flash-dev est gratuit et open source.
+
+Pour financer le développement, Flash-dev peut occasionnellement afficher un court message de soutien ou sponsorisé après une commande réussie (`push`, `scan`).
+
+- Pas de télémétrie
+- Pas de tracking
+- Pas de requête réseau pour les pubs
+- Aucune donnée projet collectée
+- Ne bloque jamais une commande
+- Opt-out disponible
+
+```bash
+flash-dev config monetization off
+flash-dev config monetization on
+flash-dev config monetization ads off
+flash-dev config monetization support off
+```
+
+Code source : [`src/utils/monetization.js`](src/utils/monetization.js)
 
 <a name="fr-support"></a>
 ### Assistance

@@ -8,6 +8,12 @@ const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 
 const CONFIG_KEY = 'geminiApiKey';
 
+const DEFAULT_MONETIZATION = {
+  enabled: true,
+  supportMessages: true,
+  partnerAds: true,
+  lastShownAt: null
+};
 
 function ensureConfigDir() {
   if (!fs.existsSync(CONFIG_DIR)) {
@@ -15,37 +21,33 @@ function ensureConfigDir() {
   }
 }
 
-
 function readConfig() {
   try {
     if (fs.existsSync(CONFIG_FILE)) {
       const data = fs.readFileSync(CONFIG_FILE, 'utf8');
       return JSON.parse(data);
     }
-  } catch (error) {
-    
+  } catch {
+    // ignore corrupt config
   }
   return {};
 }
 
-
 function writeConfig(configData) {
   ensureConfigDir();
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(configData, null, 2));
-  
+
   try {
     fs.chmodSync(CONFIG_FILE, 0o600);
-  } catch (error) {
-    
+  } catch {
+    // chmod may fail on Windows — non-blocking
   }
 }
-
 
 function getApiKey() {
   const configData = readConfig();
   return configData[CONFIG_KEY] || null;
 }
-
 
 function saveApiKey(apiKey) {
   if (!apiKey || !apiKey.trim()) {
@@ -56,9 +58,25 @@ function saveApiKey(apiKey) {
   writeConfig(configData);
 }
 
-/**
- * Affiche un message d'aide pour obtenir une clé API Gemini
- */
+function getMonetizationPrefs() {
+  const configData = readConfig();
+  return {
+    ...DEFAULT_MONETIZATION,
+    ...(configData.monetization || {})
+  };
+}
+
+function setMonetizationPrefs(partial) {
+  const configData = readConfig();
+  configData.monetization = {
+    ...DEFAULT_MONETIZATION,
+    ...(configData.monetization || {}),
+    ...partial
+  };
+  writeConfig(configData);
+  return configData.monetization;
+}
+
 function displayApiKeyHelp() {
   console.log(pc.yellow('\n⚠️  Clé API Gemini non détectée'));
   console.log(pc.cyan('Pour utiliser flash-dev avec l\'IA, vous avez besoin d\'une clé API Google Gemini 2.5 Flash.'));
@@ -67,14 +85,9 @@ function displayApiKeyHelp() {
   console.log(pc.cyan('3. Collez votre clé ci-dessous\n'));
 }
 
-/**
- * Demande à l'utilisateur d'entrer sa clé API de manière interactive
- * @param {Function} promptFn - Fonction de prompt (ex: inquirer ou prompts)
- * @returns {Promise<string>} La clé API entrée par l'utilisateur
- */
 async function promptForApiKey(promptFn) {
   displayApiKeyHelp();
-  
+
   const { apiKey } = await promptFn({
     type: 'password',
     name: 'apiKey',
@@ -94,5 +107,9 @@ module.exports = {
   getApiKey,
   saveApiKey,
   displayApiKeyHelp,
-  promptForApiKey
+  promptForApiKey,
+  getMonetizationPrefs,
+  setMonetizationPrefs,
+  DEFAULT_MONETIZATION,
+  CONFIG_FILE
 };

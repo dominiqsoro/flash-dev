@@ -1,7 +1,7 @@
 const pc = require('picocolors');
 const fs = require('fs');
 const path = require('path');
-const { displayEthicalMonetization } = require('../utils/monetization');
+const { displayMonetizationMessage } = require('../utils/monetization');
 
 
 const SECURITY_PATTERNS = [
@@ -278,7 +278,7 @@ async function scanCommand() {
     }
     
     // Message éthique de monétisation
-    displayEthicalMonetization();
+    displayMonetizationMessage();
     
   } catch (error) {
     console.log(pc.red(`\nErreur lors de l'analyse: ${error.message}\n`));

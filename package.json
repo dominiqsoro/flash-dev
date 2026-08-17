@@ -1,6 +1,6 @@
 {
   "name": "flash-dev",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Copilote intelligent pour votre terminal — Automatisez Git, sécurisez vos commits, analysez vos projets — 100% Gratuit & Open-Source",
   "main": "index.js",
   "bin": {

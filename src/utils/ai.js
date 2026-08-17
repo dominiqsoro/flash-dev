@@ -2,6 +2,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const pc = require('picocolors');
 
 const MAX_DIFF_LENGTH = 4000;
+const GEMINI_MODEL = 'gemini-3.6-flash';
 
 
 function initGeminiClient(apiKey) {
@@ -13,8 +14,8 @@ function truncateDiff(diff) {
   if (diff.length <= MAX_DIFF_LENGTH) {
     return diff;
   }
-  
-  console.log(pc.yellow(`⚠️  Diff trop volumineux (${diff.length} caractères). Tronqué à ${MAX_DIFF_LENGTH} caractères.`));
+
+  console.log(pc.yellow('Diff trop volumineux — tronqué pour l\'IA.'));
   return diff.substring(0, MAX_DIFF_LENGTH);
 }
 
@@ -63,8 +64,8 @@ Règles:
 - Si le diff est vide ou ne contient que des espaces, retourne "chore: initial commit"`;
 
     const model = client.getGenerativeModel(
-      { 
-        model: 'gemini-2.5-flash',
+      {
+        model: GEMINI_MODEL,
         systemInstruction: systemPrompt
       }
     );
@@ -228,11 +229,7 @@ function generateBasicCommitMessage(diff) {
   }
   
   // Construire le message final
-  const message = `${type}(${scope}): ${description}`;
-  
-  console.log(pc.yellow('📝 Message de commit généré (mode sans IA):'));
-  
-  return message;
+  return `${type}(${scope}): ${description}`;
 }
 
 /**
@@ -245,6 +242,7 @@ function displayCommitMessage(message) {
 }
 
 module.exports = {
+  GEMINI_MODEL,
   initGeminiClient,
   truncateDiff,
   filterDiff,

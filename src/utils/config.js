@@ -79,7 +79,7 @@ function setMonetizationPrefs(partial) {
 
 function displayApiKeyHelp() {
   console.log(pc.yellow('\n⚠️  Clé API Gemini non détectée'));
-  console.log(pc.cyan('Pour utiliser flash-dev avec l\'IA, vous avez besoin d\'une clé API Google Gemini 2.5 Flash.'));
+  console.log(pc.cyan('Pour utiliser flash-dev avec l\'IA, vous avez besoin d\'une clé API Google Gemini.'));
   console.log(pc.cyan('1. Visitez: https://makersuite.google.com/app/apikey'));
   console.log(pc.cyan('2. Créez une clé API gratuite'));
   console.log(pc.cyan('3. Collez votre clé ci-dessous\n'));

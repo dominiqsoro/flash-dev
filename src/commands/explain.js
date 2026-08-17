@@ -6,7 +6,7 @@
 const pc = require('picocolors');
 const Logger = require('../core/logger');
 const config = require('../core/config');
-const { initGeminiClient } = require('../utils/ai');
+const { initGeminiClient, GEMINI_MODEL } = require('../utils/ai');
 const { getApiKey } = require('../utils/config');
 const fs = require('fs').promises;
 const path = require('path');
@@ -118,7 +118,7 @@ Format JSON: {"cause": "...", "solution": "...", "example": "...", "docs": "..."
 Erreur:
 ${errorText}`;
         
-        const model = client.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = client.getGenerativeModel({ model: GEMINI_MODEL });
         const result = await model.generateContent(prompt);
         const response = result.response.text();
         
@@ -142,10 +142,10 @@ ${errorText}`;
           console.log(pc.green('✨ Analyse IA terminée\n'));
           return;
         } catch (parseError) {
-          console.log(pc.yellow('⚠️  Impossible de parser la réponse IA, fallback local...\n'));
+          console.log(pc.yellow('IA illisible — analyse locale.\n'));
         }
       } catch (error) {
-        console.log(pc.yellow('⚠️  Analyse IA indisponible, fallback local...\n'));
+        console.log(pc.yellow('IA indisponible — analyse locale.\n'));
       }
     }
 

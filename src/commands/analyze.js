@@ -8,7 +8,7 @@ const scanCommand = require('./scan');
 const FrameworkDetector = require('../detectors/framework');
 const NodeDetector = require('../detectors/node');
 const GitDetector = require('../detectors/git');
-const { initGeminiClient } = require('../utils/ai');
+const { initGeminiClient, GEMINI_MODEL } = require('../utils/ai');
 const { getApiKey } = require('../utils/config');
 const { formatBytes } = require('../utils/fs-helpers');
 const fs = require('fs').promises;
@@ -132,7 +132,7 @@ async function analyzeCommand() {
 
 Format JSON: {"score": number, "suggestions": ["..."], "improvements": ["..."]}`;
         
-        const model = client.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = client.getGenerativeModel({ model: GEMINI_MODEL });
         const result = await model.generateContent(prompt);
         const response = result.response.text();
         
@@ -147,10 +147,10 @@ Format JSON: {"score": number, "suggestions": ["..."], "improvements": ["..."]}`
             console.log(pc.gray(`    ${i + 1}. ${s}`));
           });
         } catch (parseError) {
-          console.log(pc.yellow('  Impossible de parser la réponse IA'));
+          console.log(pc.yellow('  Réponse IA illisible — analyse locale.'));
         }
       } catch (error) {
-        console.log(pc.yellow('  Analyse IA indisponible'));
+        console.log(pc.yellow('  IA indisponible — analyse locale.'));
       }
     } else {
       

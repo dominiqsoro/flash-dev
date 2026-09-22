@@ -1,7 +1,7 @@
 const os = require('os');
 const path = require('path');
 const fs = require('fs');
-const { run, capture, ok, tokenize } = require('../utils/exec');
+const { run, capture, ok, tokenize, quoteForCmd, resolveWindowsExecutable } = require('../utils/exec');
 
 describe('utils/exec', () => {
   test('capture retourne stdout', () => {
@@ -52,6 +52,34 @@ describe('utils/exec', () => {
     const tmp = fs.realpathSync(os.tmpdir());
     const output = capture(process.execPath, ['-e', 'console.log(process.cwd())'], { cwd: tmp });
     expect(fs.realpathSync(output)).toBe(tmp);
+  });
+
+  // Regression: switching from execSync (shell) to spawnSync (no shell) broke
+  // npm/npx on Windows, where they are .cmd wrappers Node refuses to spawn.
+  describe('compatibilité Windows', () => {
+    test('quoteForCmd encadre l\'argument', () => {
+      expect(quoteForCmd('hello')).toBe('"hello"');
+      expect(quoteForCmd('a b')).toBe('"a b"');
+    });
+
+    test('quoteForCmd neutralise les métacaractères cmd', () => {
+      const quoted = quoteForCmd('a" & calc.exe');
+      expect(quoted).toContain('^&');
+      expect(quoted.startsWith('"')).toBe(true);
+    });
+
+    test.each([['|'], ['<'], ['>'], ['^']])('échappe %s', (character) => {
+      expect(quoteForCmd(`x${character}y`)).toContain(`^${character}`);
+    });
+
+    test('resolveWindowsExecutable ne trouve rien pour un binaire absent', () => {
+      expect(resolveWindowsExecutable('binaire-absolument-inexistant-xyz')).toBeNull();
+    });
+
+    const npmTest = process.platform === 'win32' ? test : test.skip;
+    npmTest('npm reste exécutable sur Windows', () => {
+      expect(capture('npm', ['--version'])).toMatch(/^\d+\./);
+    });
   });
 
   describe('tokenize (compatibilité chaîne)', () => {

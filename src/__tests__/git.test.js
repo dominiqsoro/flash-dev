@@ -13,6 +13,21 @@ const {
   tryGit
 } = require('../utils/git');
 
+/**
+ * Canonical, comparable form of a path.
+ * On Windows, mkdtemp may return an 8.3 short path ("RUNNER~1") while git
+ * reports the long form, so both sides must be normalised before comparison.
+ * @param {string} target
+ * @returns {string}
+ */
+function canonical(target) {
+  try {
+    return fs.realpathSync.native(target).toLowerCase();
+  } catch {
+    return String(target).toLowerCase();
+  }
+}
+
 let repoDir;
 let previousCwd;
 
@@ -50,7 +65,7 @@ describe('utils/git', () => {
     process.chdir(subDir);
 
     // Regression: sync used existsSync('.git') and failed in subdirectories
-    expect(fs.realpathSync(getRepoRoot())).toBe(repoDir);
+    expect(canonical(getRepoRoot())).toBe(canonical(repoDir));
     expect(isGitRepository()).toBe(true);
   });
 

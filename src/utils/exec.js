@@ -1,6 +1,63 @@
 const { spawnSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 const DEFAULT_TIMEOUT_MS = 4000;
+const IS_WINDOWS = process.platform === 'win32';
+
+/**
+ * On Windows, npm/npx/yarn/pnpm/composer are .cmd or .bat wrappers, not .exe.
+ * Node refuses to spawn those without a shell (CVE-2024-27980), so they must
+ * go through cmd.exe — with every argument quoted by us rather than by the
+ * shell, so a metacharacter in an argument can never become syntax.
+ */
+const WINDOWS_BATCH_EXT = new Set(['.cmd', '.bat']);
+
+/**
+ * Resolve a bare command name to a concrete executable on Windows,
+ * walking PATH and PATHEXT the way the shell would.
+ * @param {string} file
+ * @returns {string|null} absolute path, or null when unresolved
+ */
+function resolveWindowsExecutable(file) {
+  if (path.extname(file)) {
+    return fs.existsSync(file) ? file : null;
+  }
+
+  const extensions = (process.env.PATHEXT || '.COM;.EXE;.BAT;.CMD')
+    .split(';')
+    .filter(Boolean);
+  const directories = (process.env.PATH || '').split(path.delimiter).filter(Boolean);
+
+  for (const directory of directories) {
+    for (const extension of extensions) {
+      const candidate = path.join(directory, file + extension);
+      try {
+        if (fs.existsSync(candidate)) return candidate;
+      } catch {
+        // Unreadable PATH entry: keep looking
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Quote one argument for cmd.exe.
+ * Wrapping in double quotes neutralises spaces and shell metacharacters;
+ * the caret escapes the few characters cmd still expands inside quotes.
+ * @param {string} argument
+ * @returns {string}
+ */
+function quoteForCmd(argument) {
+  const text = String(argument);
+  const escaped = text
+    .replace(/(\\*)"/g, '$1$1\\"')
+    .replace(/(\\*)$/, '$1$1');
+
+  return `"${escaped}"`.replace(/[\^&|<>]/g, '^$&');
+}
 
 /**
  * Split a legacy "cmd arg arg" string into argv, honouring quoted segments.
@@ -31,14 +88,33 @@ function tokenize(command) {
 function run(file, args = [], options = {}) {
   const { capture = true, timeout = DEFAULT_TIMEOUT_MS, ...rest } = options;
 
-  const result = spawnSync(file, args, {
+  let target = file;
+  let targetArgs = args;
+  let useShell = false;
+
+  if (IS_WINDOWS) {
+    const resolved = resolveWindowsExecutable(file);
+
+    if (resolved && WINDOWS_BATCH_EXT.has(path.extname(resolved).toLowerCase())) {
+      // Batch wrapper: route through cmd.exe with arguments we quote ourselves
+      const commandLine = [resolved, ...args].map(quoteForCmd).join(' ');
+      target = process.env.COMSPEC || 'cmd.exe';
+      targetArgs = ['/d', '/s', '/c', `"${commandLine}"`];
+      useShell = false;
+      rest.windowsVerbatimArguments = true;
+    } else if (resolved) {
+      target = resolved;
+    }
+  }
+
+  const result = spawnSync(target, targetArgs, {
     encoding: 'utf-8',
     timeout,
     windowsHide: true,
     maxBuffer: 16 * 1024 * 1024,
     ...rest,
     stdio: capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
-    shell: false
+    shell: useShell
   });
 
   return {
@@ -112,6 +188,8 @@ function runOk(command, options = {}) {
 
 module.exports = {
   run,
+  resolveWindowsExecutable,
+  quoteForCmd,
   capture,
   ok,
   inherit,

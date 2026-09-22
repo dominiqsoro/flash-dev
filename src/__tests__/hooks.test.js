@@ -5,6 +5,21 @@ const { run } = require('../utils/exec');
 const hooksCommand = require('../commands/hooks');
 const { inspectHooks, resolveHooksDir, runHook, MARKER } = require('../commands/hooks');
 
+/**
+ * Canonical, comparable form of a path.
+ * On Windows, mkdtemp may return an 8.3 short path ("RUNNER~1") while git
+ * reports the long form, so both sides must be normalised before comparison.
+ * @param {string} target
+ * @returns {string}
+ */
+function canonical(target) {
+  try {
+    return fs.realpathSync.native(target).toLowerCase();
+  } catch {
+    return String(target).toLowerCase();
+  }
+}
+
 let repoDir;
 let previousCwd;
 let logSpy;
@@ -28,7 +43,7 @@ afterEach(() => {
 
 describe('hooks', () => {
   test('résout le répertoire des hooks', () => {
-    expect(resolveHooksDir()).toBe(path.join(repoDir, '.git', 'hooks'));
+    expect(canonical(resolveHooksDir())).toBe(canonical(path.join(repoDir, '.git', 'hooks')));
   });
 
   test('rapporte les hooks absents avant installation', () => {
@@ -55,7 +70,9 @@ describe('hooks', () => {
   });
 
   // A missing binary must warn, never make the repository un-committable
-  test('le hook sort en 0 si flash-dev est introuvable', async () => {
+  const posixOnly = process.platform === 'win32' ? test.skip : test;
+
+  posixOnly('le hook sort en 0 si flash-dev est introuvable', async () => {
     await hooksCommand('install');
 
     const hookPath = path.join(resolveHooksDir(), 'pre-commit');

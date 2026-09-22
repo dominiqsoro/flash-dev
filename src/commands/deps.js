@@ -3,8 +3,9 @@
 const pc = require('picocolors');
 const Logger = require('../core/logger');
 const config = require('../core/config');
-const { execSync } = require('child_process');
+const { run, inherit } = require('../utils/exec');
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const path = require('path');
 const prompts = require('prompts');
 
@@ -24,10 +25,12 @@ async function depsCommand(options = {}) {
   const { fix } = options;
 
   try {
-    console.log(pc.cyan('\n📦 Flash-dev Deps - Analyse des dépendances\n'));
+    if (!config.isJson()) {
+      console.log(pc.cyan('\n📦 Flash-dev Deps - Analyse des dépendances\n'));
+    }
 
     const packageJsonPath = path.join(process.cwd(), 'package.json');
-    if (!fs.existsSync(packageJsonPath)) {
+    if (!fsSync.existsSync(packageJsonPath)) {
       console.log(pc.red('Erreur: package.json non trouvé'));
       return;
     }
@@ -49,10 +52,8 @@ async function depsCommand(options = {}) {
 
     
     try {
-      const outdated = execSync('npm outdated --json', { 
-        encoding: 'utf-8', 
-        stdio: 'pipe' 
-      });
+      // `npm outdated` exits 1 when anything is outdated: read stdout regardless
+      const outdated = run('npm', ['outdated', '--json'], { timeout: 180000 }).stdout;
       if (outdated.trim()) {
         const outdatedData = JSON.parse(outdated);
         Object.keys(outdatedData).forEach(pkg => {
@@ -64,15 +65,12 @@ async function depsCommand(options = {}) {
         });
       }
     } catch (error) {
-      
+      logger.debug('npm outdated indisponible', { reason: error.message });
     }
 
     
     try {
-      const audit = execSync('npm audit --json', { 
-        encoding: 'utf-8', 
-        stdio: 'pipe' 
-      });
+      const audit = run('npm', ['audit', '--json'], { timeout: 180000 }).stdout;
       const auditData = JSON.parse(audit);
       if (auditData.vulnerabilities) {
         Object.values(auditData.vulnerabilities).forEach(vuln => {
@@ -86,15 +84,12 @@ async function depsCommand(options = {}) {
         });
       }
     } catch (error) {
-      
+      logger.debug('npm audit indisponible', { reason: error.message });
     }
 
     
     try {
-      const lsOutput = execSync('npm ls --json --depth=0', { 
-        encoding: 'utf-8', 
-        stdio: 'pipe' 
-      });
+      const lsOutput = run('npm', ['ls', '--json', '--depth=0'], { timeout: 120000 }).stdout;
       const lsData = JSON.parse(lsOutput);
       if (lsData.dependencies) {
         Object.entries(lsData.dependencies).forEach(([name, data]) => {
@@ -103,17 +98,23 @@ async function depsCommand(options = {}) {
           }
         });
       }
-    } catch (error) {}
+    } catch (error) {
+      logger.debug('npm ls indisponible', { reason: error.message });
+    }
 
-    
     
     const sourceFiles = await findSourceFiles(process.cwd());
     const usedImports = await extractImports(sourceFiles);
     
+    const toolingUsage = extractToolingUsage(packageJson);
+
     Object.keys(allDeps).forEach(dep => {
-      if (!usedImports.has(dep) && !dep.startsWith('@types/')) {
-        analysis.unused.push(dep);
-      }
+      if (usedImports.has(dep)) return;
+      if (toolingUsage.has(dep)) return;
+      if (dep.startsWith('@types/')) return;
+      // eslint-config-x / eslint-plugin-x are loaded by name, never imported
+      if (/^(@[^/]+\/)?(eslint|prettier|babel|postcss|stylelint)-(config|plugin|preset)/.test(dep)) return;
+      analysis.unused.push(dep);
     });
 
     if (config.isJson()) {
@@ -192,20 +193,18 @@ async function depsCommand(options = {}) {
       
       if (analysis.vulnerabilities.length > 0) {
         console.log(pc.yellow('  Tentative de correction des vulnérabilités...'));
-        try {
-          execSync('npm audit fix', { stdio: 'inherit' });
+        if (inherit('npm', ['audit', 'fix'], { timeout: 600000 }).ok) {
           console.log(pc.green('  ✅ Vulnérabilités corrigées'));
-        } catch (error) {
+        } else {
           console.log(pc.yellow('  ⚠️  Certaines vulnérabilités nécessitent une intervention manuelle'));
         }
       }
 
       if (analysis.outdated.length > 0) {
         console.log(pc.yellow('  Mise à jour des packages obsolètes...'));
-        try {
-          execSync('npm update', { stdio: 'inherit' });
+        if (inherit('npm', ['update'], { timeout: 600000 }).ok) {
           console.log(pc.green('  ✅ Packages mis à jour'));
-        } catch (error) {
+        } else {
           console.log(pc.yellow('  ⚠️  Erreur lors de la mise à jour'));
         }
       }
@@ -219,9 +218,7 @@ async function depsCommand(options = {}) {
 
   } catch (error) {
     console.log(pc.red(`\n❌ Erreur lors de l'analyse: ${error.message}\n`));
-    if (config.isVerbose()) {
-      console.log(error.stack);
-    }
+    logger.debug('Trace complète', { stack: error.stack });
     throw error;
   }
 }
@@ -249,56 +246,100 @@ async function findSourceFiles(dir) {
   return files;
 }
 
+/**
+ * Resolve a specifier to its package name.
+ * Scoped packages keep two segments ("@scope/name"), others keep one.
+ * @param {string} specifier
+ * @returns {string|null}
+ */
+function toPackageName(specifier) {
+  if (!specifier || specifier.startsWith('.') || specifier.startsWith('/')) return null;
+  if (specifier.startsWith('node:')) return null;
+
+  const parts = specifier.split('/');
+  return specifier.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0];
+}
+
 async function extractImports(files) {
   const imports = new Set();
-  const importRegex = /import\s+.*?\s+from\s+['"]([^'"]+)['"]|require\(['"]([^'"]+)['"]\)/g;
-  
+
   for (const file of files) {
     try {
       const content = await fs.readFile(file, 'utf8');
+      // Fresh regex per file: a /g regex keeps lastIndex between runs
+      const importRegex = /import\s+[^;]*?from\s*['"]([^'"]+)['"]|require\(\s*['"]([^'"]+)['"]\s*\)|import\(\s*['"]([^'"]+)['"]\s*\)|import\s+['"]([^'"]+)['"]/g;
       let match;
       while ((match = importRegex.exec(content)) !== null) {
-        const dep = match[1] || match[2];
-        
-        const pkgName = dep.split('/')[0];
-        if (pkgName && !pkgName.startsWith('.')) {
-          imports.add(pkgName);
-        }
+        const pkgName = toPackageName(match[1] || match[2] || match[3] || match[4]);
+        if (pkgName) imports.add(pkgName);
       }
     } catch (error) {}
   }
-  
+
   return imports;
+}
+
+/**
+ * Packages referenced outside of import statements: npm scripts, config keys
+ * and well-known tooling that runs through its own binary.
+ * @param {object} packageJson
+ * @returns {Set<string>}
+ */
+function extractToolingUsage(packageJson) {
+  const used = new Set();
+  const scriptBody = Object.values(packageJson.scripts || {}).join(' ');
+
+  const TOOLING = [
+    'jest', 'vitest', 'mocha', 'eslint', 'prettier', 'typescript', 'tsx', 'ts-node',
+    'nodemon', 'rimraf', 'husky', 'lint-staged', 'webpack', 'vite', 'rollup', 'esbuild',
+    'tailwindcss', 'postcss', 'autoprefixer', 'babel', 'nyc', 'c8', 'concurrently',
+    'cross-env', 'dotenv-cli', 'semantic-release', 'standard-version'
+  ];
+
+  for (const tool of TOOLING) {
+    if (scriptBody.includes(tool) || packageJson[tool] !== undefined) {
+      used.add(tool);
+    }
+  }
+
+  // A dedicated config block in package.json counts as usage
+  for (const key of Object.keys(packageJson)) {
+    used.add(key);
+  }
+
+  return used;
 }
 
 async function removeUnusedPackages(unused, packageJsonPath, packageJson) {
   const safeToRemove = unused.filter(pkg => !CRITICAL_PACKAGES.includes(pkg));
-  
+
   if (safeToRemove.length === 0) {
     console.log(pc.yellow('  Aucun package sûr à supprimer (tous sont critiques)'));
     return;
   }
 
-  console.log(pc.yellow(`  Suppression de ${safeToRemove.length} packages...`));
-  
+  console.log(pc.yellow(`  Suppression de ${safeToRemove.length} package(s)...`));
+
+  // Keep the exact original bytes so a failed install can be rolled back.
+  const originalContent = await fs.readFile(packageJsonPath, 'utf8');
+  const updated = JSON.parse(originalContent);
+
   for (const pkg of safeToRemove) {
-    if (packageJson.dependencies?.[pkg]) {
-      delete packageJson.dependencies[pkg];
-    }
-    if (packageJson.devDependencies?.[pkg]) {
-      delete packageJson.devDependencies[pkg];
-    }
+    if (updated.dependencies?.[pkg]) delete updated.dependencies[pkg];
+    if (updated.devDependencies?.[pkg]) delete updated.devDependencies[pkg];
   }
 
-  await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2));
-  
-  try {
-    execSync('npm install', { stdio: 'inherit' });
+  await fs.writeFile(packageJsonPath, `${JSON.stringify(updated, null, 2)}\n`);
+
+  if (inherit('npm', ['install'], { timeout: 600000 }).ok) {
     console.log(pc.green('  ✅ Packages supprimés avec succès'));
-  } catch (error) {
-    console.log(pc.yellow('  ⚠️  Erreur lors de npm install, restauration...'));
-    
+    return;
   }
+
+  // Rollback: the previous version left package.json mutated on failure.
+  await fs.writeFile(packageJsonPath, originalContent);
+  console.log(pc.red('  ❌ npm install a échoué — package.json restauré à l\'identique.'));
+  console.log(pc.cyan('  Relancez "npm install" pour revenir à un état cohérent.'));
 }
 
 module.exports = depsCommand;

@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 <summary><strong>Versions</strong></summary>
 
 - [Unreleased](#en-unreleased)
+- [3.1.0 — 2026-09-22](#en-v310)
 - [3.0.0 — 2026-08-05](#en-v300)
 - [2.0.0 — 2026-08-04](#en-v200)
 - [1.1.0 — 2026-08-01](#en-v110)
@@ -47,6 +48,57 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Advanced interactive mode with file selection
 
 ---
+
+<a name="en-v310"></a>
+### [3.1.0] — 2026-09-22
+
+Audit de sécurité complet du projet, correction des défauts bloquants et quatre nouvelles commandes.
+
+#### Fixed — Critical
+
+- **`deps` and `fix` crashed on every invocation.** Both required `fs.promises` and then called `fs.existsSync`, which does not exist on that handle. Two of the advertised commands were entirely unusable.
+- **Command injection in `node-switch`.** The version argument was interpolated into a `curl`/`powershell` shell string; `flash-dev node-switch '1";touch /tmp/PWNED;"' ` executed arbitrary commands. Same class of defect fixed in `create`, `laravel make-crud`, `sql-dump`, `scripts`, `nuke` and `sync`. All child processes now use discrete argv arrays and never a shell.
+- **`sync` consumed unrelated stashes.** `git stash push` was allowed to fail silently on a clean tree, then `git stash pop` ran unconditionally and dumped an unrelated, previously saved stash into the current branch. The command now tracks its own stash by label and restores only that one.
+- **`node-switch` installed unverified binaries.** Node.js archives were downloaded and extracted with no integrity check. `SHASUMS256.txt` is now fetched and verified; a mismatched archive is deleted and the install aborts.
+- **`kill-node` sent SIGKILL to every Node process** with no listing and no confirmation, killing dev servers, watchers and editor language servers. It now lists candidates with their command line, protects editors/LSP/ancestors, asks for confirmation, and escalates SIGTERM → SIGKILL.
+
+#### Fixed — Security engine correctness
+
+- **`secure` blocked the removal of a secret.** Deleted lines were scanned, so committing the fix for a leak was impossible. Only added lines are audited now.
+- **`secure` reported false positives.** A rule's `context` was tested against the whole diff instead of the line, so any 40-character string became a "critical AWS secret" when the word `aws_secret` appeared elsewhere. Context is now line-scoped.
+- **`secure` reported diff offsets as line numbers.** A proper unified-diff parser now yields real `file:line` locations, and matched values are redacted in the output.
+- **`scan` missed every second occurrence.** Rules used `/g` regexes with `.test()` in a loop, so `lastIndex` persisted between lines. Verified with a regression test on four identical lines.
+- **`scan`'s "SQL injection" rule flagged all string concatenation**, and its bare `JOIN` keyword matched `array.join()`. Rules now require an actual SQL statement shape plus a dynamic value.
+- **`nuke` matched branch names by substring.** An unmerged `fea` was listed as merged whenever `feature-done` was merged. Branch listing is now exact and uses a single git call instead of one per branch.
+- **`sql-dump` exposed the database password** on the command line (readable via `ps aux`). Credentials now travel through `MYSQL_PWD`/`PGPASSWORD` only, dumps are written with mode 600, and empty dumps are discarded.
+
+#### Fixed — Correctness & honesty
+
+- `analyze` imported `scan` and `size` but never called them, despite advertising a security and quality audit. It now runs a real security scan and reports it.
+- The "architecture score" was a constant formula (`70` + fixed bonuses) that returned 90 for any Git repository. It is now derived from measured signals, and every deduction is explained.
+- `--json`, `--verbose` and `--quiet` are now real global flags. The README documented `analyze --json`, which previously failed with `unknown option`.
+- `deps` reported scoped packages as unused (`@google/generative-ai` was read as `@google`) and flagged tooling that is never imported. It also now restores `package.json` when `npm install` fails after a removal.
+- `env` no longer overwrites an existing `.env.example` without asking, and keeps a `.bak`.
+- `pack` built the archive inside the directory it was reading, making `tar` exit 1 with "file changed as we read it" on every run. The archive is now staged outside the tree.
+- `package.json` declared `"main": "index.js"`, a file that does not exist.
+
+#### Added
+
+- **`flash-dev hooks`** — installs and manages Git hooks: secret audit on `pre-commit`, Conventional Commits validation on `commit-msg`, security scan on `pre-push`. Foreign hooks are backed up, never clobbered; a missing `flash-dev` binary warns instead of making the repository un-committable.
+- **`flash-dev changelog`** — generates a Keep a Changelog section from Conventional Commits, infers the semver bump (including `BREAKING CHANGE`), and inserts it without duplicating an existing version.
+- **`flash-dev licenses`** — classifies dependency licenses (permissive / weak / strong copyleft / proprietary) and supports `--fail-on` as a CI gate.
+- **`flash-dev ports [port]`** — lists listening TCP ports and frees an occupied one, via `lsof`, `ss` or `netstat`.
+- **`flash-dev push` now runs the secret audit before committing** — the product's core promise was never wired in. Bypass with `--no-secure`.
+- **`.flashdevignore`** support, plus an inline `flash-dev-ignore-secret` escape hatch.
+
+#### Changed
+
+- New `src/utils/exec.js`: every child process goes through a shell-free argv API.
+- New shared modules: `core/secret-patterns.js`, `core/code-rules.js`, `core/diff-parser.js`, `core/conventional.js`, `utils/dotenv.js`, `utils/walk.js`.
+- `core/errors.js` (84 lines, previously imported nowhere) now backs solution-oriented error rendering; `Logger` (created in six commands and never used) is wired to `--verbose`.
+- The Gemini model is overridable via `FLASH_DEV_GEMINI_MODEL`; the default returns to a published identifier.
+- Test suite: 17 → 282 tests, coverage 5% → 24% (94–100% on the security engines).
+- CI runs on Node 18/20/22 plus Windows, fails on a stale lockfile, and makes flash-dev audit itself.
 
 <a name="en-v300"></a>
 ### [3.0.0] - 2026-08-05
@@ -289,6 +341,7 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 <summary><strong>Versions</strong></summary>
 
 - [Non publié](#fr-unreleased)
+- [3.1.0 — 2026-09-22](#fr-v310)
 - [3.0.0 — 2026-08-05](#fr-v300)
 - [2.0.0 — 2026-08-04](#fr-v200)
 - [1.1.0 — 2026-08-01](#fr-v110)
@@ -308,6 +361,57 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Mode interactif avancé avec sélection de fichiers
 
 ---
+
+<a name="fr-v310"></a>
+### [3.1.0] — 2026-09-22
+
+Audit de sécurité complet du projet, correction des défauts bloquants et quatre nouvelles commandes.
+
+#### Corrigé — Critique
+
+- **`deps` et `fix` plantaient à chaque appel.** Les deux importaient `fs.promises` puis appelaient `fs.existsSync`, qui n'existe pas sur cet objet. Deux commandes mises en avant étaient totalement inutilisables.
+- **Injection de commande dans `node-switch`.** L'argument de version était interpolé dans une chaîne shell `curl`/`powershell` : `flash-dev node-switch '1";touch /tmp/PWNED;"'` exécutait des commandes arbitraires. Même classe de faille corrigée dans `create`, `laravel make-crud`, `sql-dump`, `scripts`, `nuke` et `sync`. Tous les processus fils utilisent désormais des tableaux argv, sans shell.
+- **`sync` consommait un stash qui ne lui appartenait pas.** Le `git stash push` pouvait échouer silencieusement sur un arbre propre, puis le `git stash pop` s'exécutait inconditionnellement et déversait un stash sauvegardé des jours plus tôt dans la branche courante. La commande suit désormais son propre stash par label et ne restaure que celui-là.
+- **`node-switch` installait des binaires non vérifiés.** Les archives Node.js étaient téléchargées et extraites sans aucun contrôle d'intégrité. `SHASUMS256.txt` est maintenant récupéré et vérifié ; une archive dont l'empreinte diffère est supprimée et l'installation annulée.
+- **`kill-node` envoyait SIGKILL à tous les processus Node**, sans liste ni confirmation, tuant serveurs de dev, watchers et serveurs de langage des éditeurs. La commande liste désormais les candidats avec leur ligne de commande, protège éditeurs/LSP/ancêtres, demande confirmation et applique SIGTERM puis SIGKILL.
+
+#### Corrigé — Justesse des moteurs de sécurité
+
+- **`secure` empêchait de supprimer un secret.** Les lignes supprimées étaient analysées : il était impossible de committer la correction d'une fuite. Seules les lignes ajoutées sont auditées.
+- **`secure` produisait des faux positifs.** Le `context` d'une règle était testé sur tout le diff au lieu de la ligne : toute chaîne de 40 caractères devenait un « secret AWS critique » dès que le mot `aws_secret` apparaissait ailleurs. Le contexte est désormais limité à la ligne.
+- **`secure` affichait des offsets de diff comme numéros de ligne.** Un vrai analyseur de diff unifié fournit maintenant des emplacements `fichier:ligne` exacts, et les valeurs détectées sont masquées dans le rapport.
+- **`scan` manquait une occurrence sur deux.** Les règles utilisaient des regex `/g` avec `.test()` en boucle : `lastIndex` persistait entre les lignes. Vérifié par un test de non-régression sur quatre lignes identiques.
+- **La règle « injection SQL » de `scan` signalait toute concaténation de chaînes**, et son mot-clé `JOIN` isolé correspondait à `array.join()`. Les règles exigent désormais une vraie forme de requête SQL accompagnée d'une valeur dynamique.
+- **`nuke` comparait les noms de branches par sous-chaîne.** Une branche `fea` non fusionnée était listée comme fusionnée dès que `feature-done` l'était. Le listage est maintenant exact et tient en un seul appel git au lieu d'un par branche.
+- **`sql-dump` exposait le mot de passe** sur la ligne de commande (lisible via `ps aux`). Les identifiants transitent désormais uniquement par `MYSQL_PWD`/`PGPASSWORD`, les dumps sont écrits en mode 600 et un dump vide est supprimé.
+
+#### Corrigé — Cohérence et sincérité
+
+- `analyze` importait `scan` et `size` sans jamais les appeler, tout en annonçant un audit sécurité et qualité. Un vrai scan de sécurité est désormais exécuté et restitué.
+- Le « score d'architecture » était une formule constante (`70` + bonus fixes) donnant 90 à tout dépôt Git. Il est maintenant dérivé de signaux mesurés, et chaque pénalité est expliquée.
+- `--json`, `--verbose` et `--quiet` sont de véritables options globales. Le README documentait `analyze --json`, qui échouait avec `unknown option`.
+- `deps` signalait les paquets scopés comme inutilisés (`@google/generative-ai` était lu comme `@google`) et les outils jamais importés. Il restaure aussi `package.json` si `npm install` échoue après une suppression.
+- `env` n'écrase plus un `.env.example` existant sans demander, et conserve une sauvegarde `.bak`.
+- `pack` créait l'archive dans le dossier qu'il lisait, faisant sortir `tar` en code 1 avec « file changed as we read it » à chaque exécution. L'archive est désormais construite hors de l'arborescence.
+- `package.json` déclarait `"main": "index.js"`, un fichier inexistant.
+
+#### Ajouté
+
+- **`flash-dev hooks`** — installe et gère les hooks Git : audit des secrets sur `pre-commit`, validation Conventional Commits sur `commit-msg`, analyse de sécurité sur `pre-push`. Les hooks existants sont sauvegardés, jamais écrasés ; si le binaire `flash-dev` est absent, le hook avertit au lieu de rendre le dépôt non committable.
+- **`flash-dev changelog`** — génère une section Keep a Changelog depuis les Conventional Commits, déduit la version semver (y compris `BREAKING CHANGE`) et l'insère sans dupliquer une version existante.
+- **`flash-dev licenses`** — classe les licences des dépendances (permissive / copyleft faible / copyleft fort / propriétaire) et gère `--fail-on` comme garde-fou CI.
+- **`flash-dev ports [port]`** — liste les ports TCP en écoute et libère un port occupé, via `lsof`, `ss` ou `netstat`.
+- **`flash-dev push` lance désormais l'audit des secrets avant le commit** — la promesse centrale du produit n'était branchée nulle part. Contournement : `--no-secure`.
+- Prise en charge de **`.flashdevignore`** et du marqueur inline `flash-dev-ignore-secret`.
+
+#### Modifié
+
+- Nouveau `src/utils/exec.js` : tout processus fils passe par une API argv sans shell.
+- Nouveaux modules partagés : `core/secret-patterns.js`, `core/code-rules.js`, `core/diff-parser.js`, `core/conventional.js`, `utils/dotenv.js`, `utils/walk.js`.
+- `core/errors.js` (84 lignes, importé nulle part) alimente désormais un rendu d'erreur orienté solution ; le `Logger` (créé dans six commandes, jamais utilisé) est branché sur `--verbose`.
+- Le modèle Gemini est surchargeable via `FLASH_DEV_GEMINI_MODEL` ; la valeur par défaut revient à un identifiant publié.
+- Suite de tests : 17 → 282 tests, couverture 5 % → 24 % (94–100 % sur les moteurs de sécurité).
+- CI sur Node 18/20/22 et Windows, échec sur lockfile désynchronisé, et flash-dev s'audite lui-même.
 
 <a name="fr-v300"></a>
 ### [3.0.0] - 2026-08-05

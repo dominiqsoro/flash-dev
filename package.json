@@ -1,8 +1,7 @@
 {
   "name": "flash-dev",
-  "version": "3.0.1",
-  "description": "Copilote intelligent pour votre terminal — Automatisez Git, sécurisez vos commits, analysez vos projets — 100% Gratuit & Open-Source",
-  "main": "index.js",
+  "version": "3.1.0",
+  "description": "Copilote intelligent pour votre terminal \u2014 Automatisez Git, s\u00e9curisez vos commits, analysez vos projets \u2014 100% Gratuit & Open-Source",
   "bin": {
     "flash-dev": "bin/index.js"
   },
@@ -20,21 +19,27 @@
     "registry": "https://registry.npmjs.org/"
   },
   "keywords": [
-    "git",
-    "cli",
-    "automation",
     "ai",
-    "gemini",
-    "copilot",
-    "developer-tools",
-    "doctor",
     "analyze",
+    "automation",
+    "changelog",
+    "cli",
+    "conventional-commits",
+    "copilot",
     "deps",
+    "developer-tools",
+    "diagnostics",
     "docker",
+    "doctor",
+    "gemini",
+    "git",
+    "hooks",
     "laravel",
+    "licenses",
     "nextjs",
-    "security",
-    "diagnostics"
+    "ports",
+    "secrets",
+    "security"
   ],
   "author": "dominiqsoro",
   "license": "GPL-3.0",
@@ -47,7 +52,8 @@
     "bin",
     "src",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -66,7 +72,14 @@
     "coverageDirectory": "coverage",
     "collectCoverageFrom": [
       "src/**/*.js",
-      "!src/**/*.test.js"
+      "!src/**/*.test.js",
+      "!src/__tests__/**"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/"
+    ],
+    "testMatch": [
+      "**/?(*.)+(test).js"
     ]
   }
 }

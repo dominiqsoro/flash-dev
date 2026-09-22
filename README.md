@@ -85,6 +85,25 @@ Flash-dev automates your Git workflow in a single command: `git add` + AI-powere
 - **Docker**: Full Docker/Docker Compose integration
 
 <a name="en-requirements"></a>
+#### New in 3.1.0
+
+| Command | Purpose |
+| --- | --- |
+| `flash-dev hooks install` | Installs Git hooks: secret audit before commit, Conventional Commits validation, security scan before push |
+| `flash-dev changelog` | Generates a CHANGELOG section from Conventional Commits, with automatic semver bump |
+| `flash-dev licenses` | Audits dependency licenses; `--fail-on strong` turns it into a CI gate |
+| `flash-dev ports [port]` | Lists listening TCP ports and frees an occupied one |
+
+Global flags available on every command:
+
+```bash
+flash-dev analyze --json      # machine-readable output for CI
+flash-dev doctor --verbose    # detailed diagnostics and stack traces
+flash-dev scan --quiet        # errors only
+```
+
+Exit codes: `0` success, `1` failure or blocking finding — usable directly in a pipeline.
+
 ### Requirements
 
 - **Node.js** — version LTS >= 18.0.0
@@ -695,6 +714,37 @@ Flash-dev automatise votre workflow Git en une seule commande : `git add` + comm
 | Open Source | Code entièrement gratuit et transparent |
 
 <a name="fr-requirements"></a>
+#### Nouveautés 3.1.0
+
+| Commande | Rôle |
+| --- | --- |
+| `flash-dev hooks install` | Installe les hooks Git : audit des secrets avant commit, validation Conventional Commits, scan avant push |
+| `flash-dev changelog` | Génère une section de CHANGELOG depuis les Conventional Commits, avec calcul automatique de la version |
+| `flash-dev licenses` | Audite les licences des dépendances ; `--fail-on strong` en fait un garde-fou CI |
+| `flash-dev ports [port]` | Liste les ports TCP en écoute et libère un port occupé |
+
+Options globales disponibles sur toutes les commandes :
+
+```bash
+flash-dev analyze --json      # sortie machine pour la CI
+flash-dev doctor --verbose    # diagnostics détaillés et traces
+flash-dev scan --quiet        # erreurs uniquement
+```
+
+Codes de sortie : `0` succès, `1` échec ou détection bloquante — exploitables directement en pipeline.
+
+#### Fichier .flashdevignore
+
+`flash-dev scan` respecte un fichier `.flashdevignore` à la racine du projet (syntaxe proche de `.gitignore`) :
+
+```
+dist/
+*.generated.js
+src/__tests__/
+```
+
+Pour un faux positif ponctuel, ajoutez le commentaire `flash-dev-ignore-secret` sur la ligne concernée.
+
 ### Prérequis
 
 - **Node.js** — version LTS >= 18.0.0

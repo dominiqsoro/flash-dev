@@ -2,9 +2,9 @@
  * Détecteur Git - Analyse l'état du dépôt Git
  */
 
-const { execSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+const { capture, ok } = require('../utils/exec');
+
+const GIT_TIMEOUT = 5000;
 
 class GitDetector {
   constructor() {
@@ -12,16 +12,16 @@ class GitDetector {
   }
 
   findGitRoot() {
-    try {
-      const gitDir = execSync('git rev-parse --git-dir', { 
-        encoding: 'utf-8', 
-        cwd: process.cwd(),
-        stdio: 'pipe'
-      }).trim();
-      return path.dirname(gitDir);
-    } catch (error) {
-      return null;
-    }
+    return capture('git', ['rev-parse', '--show-toplevel'], { timeout: GIT_TIMEOUT });
+  }
+
+  /**
+   * Run git inside the detected repository root.
+   * @param {string[]} args
+   * @returns {string|null}
+   */
+  git(args) {
+    return capture('git', args, { timeout: GIT_TIMEOUT, cwd: this.root || process.cwd() });
   }
 
   async detect() {
@@ -38,106 +38,44 @@ class GitDetector {
       status: 'unknown'
     };
 
-    try {
-      // Vérifier si Git est installé
-      execSync('git --version', { stdio: 'pipe' });
-      result.installed = true;
-    } catch (error) {
+    if (!ok('git', ['--version'], { timeout: GIT_TIMEOUT })) {
       return result;
     }
+    result.installed = true;
 
     if (!this.root) {
       return result;
     }
-
     result.repository = true;
 
-    try {
-      // Branche courante
-      result.currentBranch = execSync('git rev-parse --abbrev-ref HEAD', {
-        encoding: 'utf-8',
-        cwd: this.root,
-        stdio: 'pipe'
-      }).trim();
+    result.currentBranch = this.git(['rev-parse', '--abbrev-ref', 'HEAD']);
 
-      // Remote configuré
-      try {
-        const remote = execSync('git remote get-url origin', {
-          encoding: 'utf-8',
-          cwd: this.root,
-          stdio: 'pipe'
-        }).trim();
-        result.remote = !!remote;
-      } catch (error) {
-        result.remote = false;
+    const remote = this.git(['remote', 'get-url', 'origin']);
+    result.remote = Boolean(remote);
+
+    result.remoteBranch = this.git(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}']);
+
+    const status = this.git(['status', '--porcelain']);
+    result.hasUncommitted = Boolean(status);
+    result.status = result.hasUncommitted ? 'dirty' : 'clean';
+
+    const conflicts = this.git(['diff', '--name-only', '--diff-filter=U']);
+    result.hasConflicts = Boolean(conflicts);
+    if (result.hasConflicts) {
+      result.status = 'conflicts';
+    }
+
+    if (result.remoteBranch) {
+      // Argument is a git-provided ref, but argv form keeps it inert regardless
+      const revList = this.git([
+        'rev-list', '--left-right', '--count', `${result.remoteBranch}...HEAD`
+      ]);
+
+      if (revList) {
+        const [behind, ahead] = revList.split(/\s+/).map((n) => parseInt(n, 10) || 0);
+        result.behind = behind;
+        result.ahead = ahead;
       }
-
-      // Branche distante
-      try {
-        result.remoteBranch = execSync('git rev-parse --abbrev-ref --symbolic-full-name @{u}', {
-          encoding: 'utf-8',
-          cwd: this.root,
-          stdio: 'pipe'
-        }).trim();
-      } catch (error) {
-        result.remoteBranch = null;
-      }
-
-      // Fichiers non commités
-      try {
-        const status = execSync('git status --porcelain', {
-          encoding: 'utf-8',
-          cwd: this.root,
-          stdio: 'pipe'
-        });
-        result.hasUncommitted = status.trim().length > 0;
-      } catch (error) {
-        result.hasUncommitted = false;
-      }
-
-      // Conflits
-      try {
-        const conflicts = execSync('git diff --name-only --diff-filter=U', {
-          encoding: 'utf-8',
-          cwd: this.root,
-          stdio: 'pipe'
-        });
-        result.hasConflicts = conflicts.trim().length > 0;
-      } catch (error) {
-        result.hasConflicts = false;
-      }
-
-      // Ahead/Behind
-      if (result.remoteBranch) {
-        try {
-          const revList = execSync(`git rev-list --left-right --count ${result.remoteBranch}...HEAD`, {
-            encoding: 'utf-8',
-            cwd: this.root,
-            stdio: 'pipe'
-          }).trim();
-          const [behind, ahead] = revList.split('\t').map(Number);
-          result.ahead = ahead || 0;
-          result.behind = behind || 0;
-        } catch (error) {
-          // Ignorer si pas de tracking
-        }
-      }
-
-      // Statut global
-      if (result.hasConflicts) {
-        result.status = 'conflicts';
-      } else if (result.hasUncommitted) {
-        result.status = 'dirty';
-      } else if (result.ahead > 0) {
-        result.status = 'ahead';
-      } else if (result.behind > 0) {
-        result.status = 'behind';
-      } else {
-        result.status = 'clean';
-      }
-
-    } catch (error) {
-      
     }
 
     return result;

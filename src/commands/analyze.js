@@ -3,8 +3,7 @@
 const pc = require('picocolors');
 const Logger = require('../core/logger');
 const config = require('../core/config');
-const sizeCommand = require('./size');
-const scanCommand = require('./scan');
+const { runScan } = require('./scan');
 const FrameworkDetector = require('../detectors/framework');
 const NodeDetector = require('../detectors/node');
 const GitDetector = require('../detectors/git');
@@ -14,6 +13,47 @@ const { formatBytes } = require('../utils/fs-helpers');
 const fs = require('fs').promises;
 const path = require('path');
 
+/**
+ * Derive a health score from measured signals rather than a fixed constant.
+ * Each deduction is reported so the number is explainable.
+ * @param {object} input
+ * @returns {{score: number, findings: string[]}}
+ */
+function computeHealthScore({ git, framework, depsInfo, sizeInfo, security }) {
+  let score = 100;
+  const findings = [];
+
+  const deduct = (points, reason) => {
+    score -= points;
+    findings.push(reason);
+  };
+
+  if (security.critical > 0) {
+    deduct(Math.min(30, security.critical * 10), `${security.critical} problème(s) de sécurité critique(s) — lancez "flash-dev scan"`);
+  }
+  if (security.high > 0) {
+    deduct(Math.min(15, security.high * 3), `${security.high} problème(s) de sécurité élevé(s)`);
+  }
+  if (!git.repository) {
+    deduct(15, 'Projet non versionné — initialisez un dépôt Git');
+  } else {
+    if (!git.remote) deduct(5, 'Aucun remote Git configuré');
+    if (git.hasConflicts) deduct(10, 'Conflits Git non résolus');
+    if (git.hasUncommitted) deduct(3, 'Modifications non commitées');
+  }
+  if (!framework.framework) {
+    findings.push('Aucun framework détecté (projet générique)');
+  }
+  if (depsInfo.total > 80) {
+    deduct(5, `${depsInfo.total} dépendances déclarées — surface d'attaque importante`);
+  }
+  if (sizeInfo.sourceSize > 50 * 1024 * 1024) {
+    deduct(5, 'Code source > 50 Mo — envisagez de sortir les binaires du dépôt');
+  }
+
+  return { score: Math.max(0, Math.min(100, score)), findings };
+}
+
 async function analyzeCommand() {
   const logger = Logger.create({
     verbose: config.isVerbose(),
@@ -22,7 +62,9 @@ async function analyzeCommand() {
   });
 
   try {
-    console.log(pc.cyan('\n📊 Flash-dev Analyze - Audit complet du projet\n'));
+    if (!config.isJson()) {
+      console.log(pc.cyan('\n📊 Flash-dev Analyze - Audit complet du projet\n'));
+    }
 
     
     const [framework, node, git] = await Promise.all([
@@ -74,22 +116,48 @@ async function analyzeCommand() {
       } catch (error) {}
     }
 
-    
+    // Security audit: analyze advertises it, so it must actually run it.
+    let security = { critical: 0, high: 0, medium: 0, low: 0, total: 0, topIssues: [] };
+    try {
+      const scanResult = runScan(process.cwd());
+      security = {
+        critical: scanResult.issues.filter((i) => i.severity === 'critical').length,
+        high: scanResult.issues.filter((i) => i.severity === 'high').length,
+        medium: scanResult.issues.filter((i) => i.severity === 'medium').length,
+        low: scanResult.issues.filter((i) => i.severity === 'low').length,
+        total: scanResult.issues.length,
+        topIssues: scanResult.issues.slice(0, 3).map((i) => ({
+          file: i.file,
+          line: i.line,
+          name: i.name,
+          severity: i.severity
+        }))
+      };
+    } catch (error) {
+      logger.debug('Analyse de sécurité ignorée', { reason: error.message });
+    }
+
     const results = {
       framework,
       node,
       git,
       size: sizeInfo,
       dependencies: depsInfo,
+      security,
       architecture: {
         score: 0,
         suggestions: []
       }
     };
 
+    // Compute the score before any early return, so --json carries it too
+    const health = computeHealthScore({ git, framework, depsInfo, sizeInfo, security });
+    results.architecture.score = health.score;
+    results.architecture.suggestions = health.findings;
+
     if (config.isJson()) {
       console.log(JSON.stringify(results, null, 2));
-      return;
+      return results;
     }
 
     
@@ -108,6 +176,22 @@ async function analyzeCommand() {
     if (depsInfo.total > 0) {
       console.log(pc.gray(`  Prod: ${node.dependencies}`));
       console.log(pc.gray(`  Dev: ${node.devDependencies}`));
+    }
+
+    console.log(pc.bold('\nSécurité'));
+    if (security.total === 0) {
+      console.log(pc.green('  Aucun problème détecté par l\'analyse statique'));
+    } else {
+      console.log(security.critical > 0
+        ? pc.red(`  Critique: ${security.critical}`)
+        : pc.gray('  Critique: 0'));
+      console.log(pc.yellow(`  Élevé   : ${security.high}`));
+      console.log(pc.gray(`  Moyen   : ${security.medium}   Faible: ${security.low}`));
+      for (const issue of security.topIssues) {
+        const location = issue.line > 0 ? `${issue.file}:${issue.line}` : issue.file;
+        console.log(pc.gray(`    · ${issue.name} — ${location}`));
+      }
+      console.log(pc.cyan('  Détail complet: flash-dev scan'));
     }
 
     console.log(pc.bold('\nGit'));
@@ -153,15 +237,16 @@ Format JSON: {"score": number, "suggestions": ["..."], "improvements": ["..."]}`
         console.log(pc.yellow('  IA indisponible — analyse locale.'));
       }
     } else {
-      
-      let staticScore = 70;
-      if (git.repository) staticScore += 10;
-      if (framework.framework) staticScore += 10;
-      if (depsInfo.total < 50) staticScore += 5;
-      if (sizeInfo.sourceSize < 10 * 1024 * 1024) staticScore += 5;
-      
-      results.architecture.score = staticScore;
-      console.log(pc.green(`\nScore Architecture: ${staticScore}/100 (analyse statique)`));
+      const { score, findings } = health;
+      const scoreColor = score >= 80 ? pc.green : score >= 60 ? pc.yellow : pc.red;
+      console.log(scoreColor(`\nScore de santé: ${score}/100 (analyse statique)`));
+
+      if (findings.length > 0) {
+        console.log(pc.cyan('\nPoints à traiter:'));
+        findings.forEach((finding, index) => {
+          console.log(pc.gray(`  ${index + 1}. ${finding}`));
+        });
+      }
     }
 
     console.log(pc.cyan('\n' + '='.repeat(50)));
@@ -170,11 +255,10 @@ Format JSON: {"score": number, "suggestions": ["..."], "improvements": ["..."]}`
 
   } catch (error) {
     console.log(pc.red(`\n❌ Erreur lors de l'analyse: ${error.message}\n`));
-    if (config.isVerbose()) {
-      console.log(error.stack);
-    }
+    logger.debug('Trace complète', { stack: error.stack });
     throw error;
   }
 }
 
 module.exports = analyzeCommand;
+module.exports.computeHealthScore = computeHealthScore;

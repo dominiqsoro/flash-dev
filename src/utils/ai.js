@@ -2,7 +2,16 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const pc = require('picocolors');
 
 const MAX_DIFF_LENGTH = 4000;
-const GEMINI_MODEL = 'gemini-3.6-flash';
+
+/**
+ * Gemini model used for commit messages and explanations.
+ *
+ * Model identifiers change faster than release cycles, so this is overridable
+ * without a new version:  FLASH_DEV_GEMINI_MODEL=gemini-2.5-flash flash-dev push
+ * If the configured model is rejected, callers fall back to the local engine.
+ */
+const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_MODEL = process.env.FLASH_DEV_GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
 
 
 function initGeminiClient(apiKey) {
@@ -243,6 +252,7 @@ function displayCommitMessage(message) {
 
 module.exports = {
   GEMINI_MODEL,
+  DEFAULT_GEMINI_MODEL,
   initGeminiClient,
   truncateDiff,
   filterDiff,

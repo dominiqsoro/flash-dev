@@ -1,0 +1,10 @@
+# Fichiers ignorés par `flash-dev scan`.
+# Syntaxe proche de .gitignore (globs, /ancrage, dossiers/).
+
+# Les moteurs de règles contiennent, par nature, les motifs qu'ils détectent.
+src/core/code-rules.js
+src/core/secret-patterns.js
+
+# Les tests embarquent volontairement du code vulnérable et de faux secrets
+# pour vérifier la détection : ce sont des fixtures, pas des fuites.
+src/__tests__/

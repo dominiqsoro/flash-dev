@@ -3,7 +3,7 @@
 const pc = require('picocolors');
 const Logger = require('../core/logger');
 const config = require('../core/config');
-const { execSync } = require('child_process');
+const { run, ok } = require('../utils/exec');
 const fs = require('fs').promises;
 const path = require('path');
 const prompts = require('prompts');
@@ -17,8 +17,11 @@ async function cacheCommand(action = 'list') {
   });
 
   try {
-    console.log(pc.cyan('\n🗑️  Flash-dev Cache - Gestion des caches\n'));
+    if (!config.isJson()) {
+      console.log(pc.cyan('\n🗑️  Flash-dev Cache - Gestion des caches\n'));
+    }
 
+    logger.debug('Détection des caches démarrée');
     const caches = await detectCaches();
 
     if (config.isJson()) {
@@ -119,9 +122,7 @@ async function cacheCommand(action = 'list') {
 
   } catch (error) {
     console.log(pc.red(`\n❌ Erreur: ${error.message}\n`));
-    if (config.isVerbose()) {
-      console.log(error.stack);
-    }
+    logger.debug('Trace complète', { stack: error.stack });
     throw error;
   }
 }
@@ -189,7 +190,7 @@ async function detectCaches() {
 
   
   try {
-    execSync('docker info', { stdio: 'pipe' });
+    if (!ok('docker', ['info'], { timeout: 3000 })) throw new Error('docker indisponible');
     const dockerSize = await getDockerCacheSize();
     caches.docker = {
       path: 'Docker (dangling images)',
@@ -234,7 +235,7 @@ async function detectCaches() {
 
 async function getDockerCacheSize() {
   try {
-    const output = execSync('docker images -f "dangling=true" --format "{{.Size}}"', {
+    const output = run('docker', ['images', '-f', 'dangling=true', '--format', '{{.Size}}'], {
       encoding: 'utf-8',
       stdio: 'pipe'
     });
@@ -255,15 +256,15 @@ function parseDockerSize(sizeStr) {
 
 async function cleanCache(name, info) {
   if (name === 'docker') {
-    execSync('docker image prune -f', { stdio: 'pipe' });
+    run('docker', ['image', 'prune', '-f'], { timeout: 120000 });
   } else if (name === 'npm') {
-    execSync('npm cache clean --force', { stdio: 'pipe' });
+    run('npm', ['cache', 'clean', '--force'], { timeout: 120000 });
   } else if (name === 'pnpm') {
-    execSync('pnpm store prune', { stdio: 'pipe' });
+    run('pnpm', ['store', 'prune'], { timeout: 120000 });
   } else if (name === 'yarn') {
-    execSync('yarn cache clean', { stdio: 'pipe' });
+    run('yarn', ['cache', 'clean'], { timeout: 120000 });
   } else if (name === 'composer') {
-    execSync('composer clear-cache', { stdio: 'pipe' });
+    run('composer', ['clear-cache'], { timeout: 120000 });
   } else {
     await fs.rm(info.path, { recursive: true, force: true });
   }

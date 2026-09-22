@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const pc = require('picocolors');
-const { spawnSync } = require('child_process');
+const os = require('os');
+const { run } = require('../utils/exec');
 const { formatBytes } = require('../utils/fs-helpers');
 
 /**
@@ -48,7 +49,16 @@ function packCommand(archiveNameArg) {
     console.log(pc.cyan('Exclusions configurées :'));
     console.log(pc.gray(`  ${excludes.join(', ')}`));
 
-    const args = ['-czf', archiveName];
+    const args = ['-czf'];
+
+    // Write the archive OUTSIDE the tree being read. Creating it in place made
+    // tar report "file changed as we read it" and exit 1 on every run.
+    const stagingPath = path.join(
+      fs.mkdtempSync(path.join(os.tmpdir(), 'flash-dev-pack-')),
+      path.basename(archiveName)
+    );
+    args.push(stagingPath);
+
     for (const exclude of excludes) {
       args.push(`--exclude=${exclude}`);
     }
@@ -56,29 +66,32 @@ function packCommand(archiveNameArg) {
 
     console.log(pc.yellow(`\n⏳ Compression en cours vers : ${pc.bold(archiveName)}...`));
 
-    const result = spawnSync('tar', args, { stdio: 'ignore' });
+    const result = run('tar', args, { timeout: 600000 });
 
-    if (result.error || result.status !== 0) {
-      console.log(pc.red(`\n❌ Échec de la compression via l'utilitaire système 'tar'.`));
-      console.log(pc.yellow('Vérifiez que l\'exécutable "tar" est installé sur votre système (standard sur macOS, Linux et Windows 10/11).'));
-      if (result.error) {
-        console.log(pc.gray(`Détails de l'erreur: ${result.error.message}\n`));
-      }
-      process.exit(1);
+    const filePath = path.resolve(process.cwd(), archiveName);
+
+    if (!result.ok || !fs.existsSync(stagingPath)) {
+      try { fs.rmSync(path.dirname(stagingPath), { recursive: true, force: true }); } catch { /* best effort */ }
+
+      console.log(pc.red('\n❌ Échec de la compression via l\'utilitaire système "tar".'));
+      console.log(pc.yellow('Vérifiez que "tar" est installé (standard sur macOS, Linux et Windows 10/11).'));
+      if (result.stderr) console.log(pc.gray(result.stderr.trim()));
+      process.exitCode = 1;
+      return 1;
     }
 
-    const filePath = path.join(process.cwd(), archiveName);
-    if (!fs.existsSync(filePath)) {
-      throw new Error('Le fichier archive n\'a pas été généré.');
-    }
+    fs.copyFileSync(stagingPath, filePath);
+    try { fs.rmSync(path.dirname(stagingPath), { recursive: true, force: true }); } catch { /* best effort */ }
 
     const stats = fs.statSync(filePath);
     console.log(pc.green(`\n✨ Archive créée avec succès !`));
     console.log(pc.green(`📁 Fichier    : ${pc.bold(archiveName)}`));
     console.log(pc.green(`⚖️  Taille     : ${pc.bold(formatBytes(stats.size))}\n`));
+    return 0;
   } catch (error) {
     console.log(pc.red(`\n❌ Une erreur inattendue est survenue : ${error.message}\n`));
-    process.exit(1);
+    process.exitCode = 1;
+    return 1;
   }
 }
 

@@ -1,146 +1,273 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
 const pc = require('picocolors');
-const { execSync } = require('child_process');
+const { ValidationError } = require('../core/errors');
+const { run, capture, ok } = require('../utils/exec');
 
 const CACHE_DIR = path.join(os.homedir(), '.flash-dev', 'node-versions');
 const BIN_DIR = path.join(os.homedir(), '.flash-dev', 'bin');
+const DIST_BASE = 'https://nodejs.org/dist';
 
-/**
- * Assure l'existence des répertoires de gestion de version
- */
+/** Strict semver: nothing else can reach the filesystem or the network. */
+const VERSION_RE = /^\d+\.\d+\.\d+$/;
+
 function ensureDirs() {
-  if (!fs.existsSync(CACHE_DIR)) {
-    fs.mkdirSync(CACHE_DIR, { recursive: true });
-  }
-  if (!fs.existsSync(BIN_DIR)) {
-    fs.mkdirSync(BIN_DIR, { recursive: true });
-  }
+  fs.mkdirSync(CACHE_DIR, { recursive: true });
+  fs.mkdirSync(BIN_DIR, { recursive: true });
 }
 
 /**
- * Commande: node-switch <version>
- * Gère et bascule localement la version de Node.js active
+ * Validate and normalise a user-supplied version string.
+ * Rejects anything that is not a bare semver, which closes the shell
+ * injection and path traversal surface in one place.
+ * @param {string} input
+ * @returns {string}
+ * @throws {Error}
  */
-function nodeSwitchCommand(versionArg) {
-  try {
-    console.log(pc.cyan('\n⚡  Basculeur de version Node.js local...\n'));
+function normalizeVersion(input) {
+  const candidate = String(input || '').trim().replace(/^v/i, '');
 
-    if (!versionArg) {
-      console.log(pc.red(pc.bold('Erreur : ')) + pc.yellow('Veuillez spécifier la version de Node.js souhaitée (ex: 18.16.0, 20.11.0).'));
-      process.exit(1);
+  if (!VERSION_RE.test(candidate)) {
+    throw new ValidationError(
+      `Version invalide: "${input}". Format attendu: 18.20.4 (MAJEUR.MINEUR.CORRECTIF).`,
+      'Consultez les versions disponibles sur https://nodejs.org/dist/'
+    );
+  }
+
+  return candidate;
+}
+
+/**
+ * Map process.arch to the identifier used by nodejs.org releases.
+ * @returns {string}
+ * @throws {Error} on unsupported architectures
+ */
+function resolveArch() {
+  const map = { x64: 'x64', arm64: 'arm64', arm: 'armv7l', ppc64: 'ppc64le', s390x: 's390x' };
+  const arch = map[process.arch];
+
+  if (!arch) {
+    throw new Error(`Architecture non supportée: ${process.arch}`);
+  }
+
+  return arch;
+}
+
+/**
+ * Download a URL to disk using whichever fetcher is available.
+ * Arguments are passed as argv — never interpolated into a shell string.
+ * @param {string} url
+ * @param {string} destination
+ * @returns {boolean}
+ */
+function download(url, destination) {
+  if (ok('curl', ['--version'], { timeout: 3000 })) {
+    return run('curl', ['-fsSL', '--proto', '=https', '--tlsv1.2', url, '-o', destination], {
+      timeout: 300000
+    }).ok;
+  }
+
+  if (ok('wget', ['--version'], { timeout: 3000 })) {
+    return run('wget', ['-q', '--https-only', url, '-O', destination], { timeout: 300000 }).ok;
+  }
+
+  throw new Error('Ni curl ni wget n\'est disponible pour télécharger Node.js.');
+}
+
+/**
+ * Fetch SHASUMS256.txt for a release and return the digest for one file.
+ * @param {string} version
+ * @param {string} fileName
+ * @returns {string|null}
+ */
+function fetchExpectedChecksum(version, fileName) {
+  const checksumPath = path.join(CACHE_DIR, `SHASUMS256-v${version}.txt`);
+
+  try {
+    if (!download(`${DIST_BASE}/v${version}/SHASUMS256.txt`, checksumPath)) {
+      return null;
     }
 
-    // Normaliser la version (enlever un éventuel 'v' initial)
-    const version = versionArg.startsWith('v') ? versionArg.slice(1) : versionArg;
-    
+    const content = fs.readFileSync(checksumPath, 'utf8');
+    for (const line of content.split(/\r?\n/)) {
+      const [digest, name] = line.trim().split(/\s+/);
+      if (name === fileName && /^[a-f0-9]{64}$/i.test(digest || '')) {
+        return digest.toLowerCase();
+      }
+    }
+  } catch {
+    return null;
+  } finally {
+    try { fs.unlinkSync(checksumPath); } catch { /* best effort */ }
+  }
+
+  return null;
+}
+
+/**
+ * SHA-256 of a file on disk.
+ * @param {string} filePath
+ * @returns {string}
+ */
+function sha256File(filePath) {
+  const hash = crypto.createHash('sha256');
+  hash.update(fs.readFileSync(filePath));
+  return hash.digest('hex');
+}
+
+function cleanup(target) {
+  try {
+    fs.rmSync(target, { recursive: true, force: true });
+  } catch { /* best effort */ }
+}
+
+/**
+ * flash-dev node-switch <version>
+ * Downloads a Node.js release into ~/.flash-dev and points a local shim at it.
+ * @param {string} versionArg
+ * @returns {number} exit code
+ */
+function nodeSwitchCommand(versionArg) {
+  // Validate first: a ValidationError is rendered centrally by bin/index.js,
+  // together with its suggested fix.
+  const version = normalizeVersion(versionArg);
+
+  console.log(pc.cyan('\n⚡  Basculeur de version Node.js local\n'));
+
+  try {
     ensureDirs();
 
     const isWin = process.platform === 'win32';
-    const arch = process.arch === 'x64' ? 'x64' : (process.arch === 'arm64' ? 'arm64' : 'x86');
-    
-    // Déterminer le dossier spécifique à cette version dans le cache
+    const arch = resolveArch();
     const versionDir = path.join(CACHE_DIR, `v${version}`);
-    const nodeBinaryPath = isWin 
-      ? path.join(versionDir, 'node.exe') 
+    const nodeBinaryPath = isWin
+      ? path.join(versionDir, 'node.exe')
       : path.join(versionDir, 'bin', 'node');
 
     if (fs.existsSync(nodeBinaryPath)) {
-      console.log(pc.green(`✨ La version v${version} de Node.js est déjà présente dans le cache.`));
+      console.log(pc.green(`✨ Node v${version} déjà présent dans le cache.`));
     } else {
-      console.log(pc.yellow(`📦 La version v${version} n'est pas présente dans le cache. Téléchargement depuis nodejs.org...`));
-      
-      if (!fs.existsSync(versionDir)) {
-        fs.mkdirSync(versionDir, { recursive: true });
+      const platformName = isWin ? 'win' : (process.platform === 'darwin' ? 'darwin' : 'linux');
+      const extension = isWin ? 'zip' : 'tar.gz';
+      const archiveName = `node-v${version}-${platformName}-${arch}.${extension}`;
+      const archivePath = path.join(CACHE_DIR, archiveName);
+      const url = `${DIST_BASE}/v${version}/${archiveName}`;
+
+      console.log(pc.yellow(`📦 Téléchargement de Node v${version}...`));
+      console.log(pc.gray(`   ${url}`));
+
+      if (!download(url, archivePath)) {
+        cleanup(archivePath);
+        console.log(pc.red(`\n❌ Téléchargement échoué. La version v${version} existe-t-elle ?`));
+        console.log(pc.cyan('   Versions disponibles: https://nodejs.org/dist/'));
+        process.exitCode = 1;
+        return 1;
       }
 
-      if (isWin) {
-        // Téléchargement du binaire node.exe directement pour Windows
-        const downloadUrl = `https://nodejs.org/dist/v${version}/win-${arch}/node.exe`;
-        const tempPath = path.join(versionDir, 'node.exe');
-        
-        console.log(pc.gray(`  Téléchargement : ${downloadUrl}`));
-        try {
-          execSync(`powershell.exe -NoProfile -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '${downloadUrl}' -OutFile '${tempPath}'"`, { stdio: 'pipe' });
-          console.log(pc.green('✅ Téléchargement du binaire Windows terminé.'));
-        } catch (err) {
-          console.log(pc.red(`\n❌ Échec du téléchargement. Veuillez vérifier la validité de la version "${version}".`));
-          console.log(pc.gray(`Détails: ${err.message}`));
-          // Nettoyer
-          try { fs.rmSync(versionDir, { recursive: true, force: true }); } catch (e) {}
-          process.exit(1);
-        }
-      } else {
-        // macOS ou Linux - Téléchargement et extraction de l'archive tar.gz
-        const platformName = process.platform === 'darwin' ? 'osx' : 'linux';
-        const archiveName = `node-v${version}-${platformName}-${arch}.tar.gz`;
-        const downloadUrl = `https://nodejs.org/dist/v${version}/${archiveName}`;
-        const archivePath = path.join(CACHE_DIR, archiveName);
+      // --- Integrity verification (was entirely missing) --------------------
+      console.log(pc.yellow('🔐 Vérification de l\'empreinte SHA-256...'));
+      const expected = fetchExpectedChecksum(version, archiveName);
 
-        console.log(pc.gray(`  Téléchargement : ${downloadUrl}`));
-        try {
-          execSync(`curl -sSL "${downloadUrl}" -o "${archivePath}"`, { stdio: 'pipe' });
-          console.log(pc.green('✅ Téléchargement de l\'archive terminé.'));
-          
-          console.log(pc.yellow('⏳ Extraction de l\'archive...'));
-          // Extraire l'archive directement dans le sous-dossier versionDir
-          execSync(`tar -xzf "${archivePath}" -C "${versionDir}" --strip-components=1`, { stdio: 'pipe' });
-          console.log(pc.green('✅ Extraction terminée.'));
-          
-          // Nettoyer l'archive compressée
-          fs.unlinkSync(archivePath);
-        } catch (err) {
-          console.log(pc.red(`\n❌ Échec du téléchargement ou de l'extraction. Veuillez vérifier que 'curl' et 'tar' sont disponibles et que la version "${version}" existe.`));
-          console.log(pc.gray(`Détails: ${err.message}`));
-          // Nettoyer
-          try { fs.rmSync(versionDir, { recursive: true, force: true }); } catch (e) {}
-          process.exit(1);
-        }
+      if (!expected) {
+        cleanup(archivePath);
+        console.log(pc.red('\n❌ Impossible de récupérer SHASUMS256.txt — installation annulée.'));
+        console.log(pc.cyan('   Un binaire non vérifié ne sera jamais installé.'));
+        process.exitCode = 1;
+        return 1;
       }
+
+      const actual = sha256File(archivePath);
+      if (actual !== expected) {
+        cleanup(archivePath);
+        console.log(pc.red('\n❌ EMPREINTE INVALIDE — archive rejetée et supprimée.'));
+        console.log(pc.gray(`   attendu : ${expected}`));
+        console.log(pc.gray(`   obtenu  : ${actual}`));
+        console.log(pc.yellow('   Le téléchargement a pu être altéré (proxy, MITM). N\'insistez pas.'));
+        process.exitCode = 1;
+        return 1;
+      }
+
+      console.log(pc.green('✅ Empreinte vérifiée.'));
+
+      fs.mkdirSync(versionDir, { recursive: true });
+      console.log(pc.yellow('⏳ Extraction...'));
+
+      const extraction = isWin
+        ? run('powershell.exe', [
+            '-NoProfile', '-NonInteractive', '-Command',
+            'Expand-Archive -LiteralPath $env:FD_ARCHIVE -DestinationPath $env:FD_DEST -Force'
+          ], { timeout: 300000, env: { ...process.env, FD_ARCHIVE: archivePath, FD_DEST: versionDir } })
+        : run('tar', ['-xzf', archivePath, '-C', versionDir, '--strip-components=1'], { timeout: 300000 });
+
+      cleanup(archivePath);
+
+      if (!extraction.ok) {
+        cleanup(versionDir);
+        console.log(pc.red('\n❌ Extraction échouée.'));
+        console.log(pc.gray(extraction.stderr || ''));
+        process.exitCode = 1;
+        return 1;
+      }
+
+      console.log(pc.green('✅ Extraction terminée.'));
     }
 
-    // Configurer le commutateur de version dans ~/.flash-dev/bin/
-    console.log(pc.yellow('\n⚙️  Mise à jour de la liaison locale de Node.js...'));
+    // --- Shim -----------------------------------------------------------------
+    console.log(pc.yellow('\n⚙️  Mise à jour du lien local...'));
 
     if (isWin) {
-      // Écriture d'un script wrapper .cmd qui ne requiert aucun privilège admin
-      const nodeCmdPath = path.join(BIN_DIR, 'node.cmd');
-      const npmCmdPath = path.join(BIN_DIR, 'npm.cmd');
+      fs.writeFileSync(path.join(BIN_DIR, 'node.cmd'), `@echo off\r\n"${nodeBinaryPath}" %*\r\n`, 'utf8');
 
-      const nodeCmdContent = `@echo off\n"${nodeBinaryPath}" %*`;
-      fs.writeFileSync(nodeCmdPath, nodeCmdContent, 'utf8');
-
-      // npm wrapper pointant vers le npm de la bonne version si disponible, sinon en s'appuyant sur l'exécutable node
       const npmCliPath = path.join(versionDir, 'node_modules', 'npm', 'bin', 'npm-cli.js');
       if (fs.existsSync(npmCliPath)) {
-        const npmCmdContent = `@echo off\n"${nodeBinaryPath}" "${npmCliPath}" %*`;
-        fs.writeFileSync(npmCmdPath, npmCmdContent, 'utf8');
+        fs.writeFileSync(
+          path.join(BIN_DIR, 'npm.cmd'),
+          `@echo off\r\n"${nodeBinaryPath}" "${npmCliPath}" %*\r\n`,
+          'utf8'
+        );
       }
 
-      console.log(pc.green('✅ Liaisons Windows créées.'));
-      console.log(pc.cyan('\n💡 Pour activer cette version de manière permanente dans votre terminal actuel :'));
+      console.log(pc.green('✅ Shims Windows créés.'));
+      console.log(pc.cyan('\n💡 Session courante (PowerShell) :'));
       console.log(pc.white(`  $env:PATH = "${BIN_DIR};" + $env:PATH`));
-      console.log(pc.cyan('\n💡 Pour l\'ajouter de manière permanente à votre compte utilisateur Windows (PowerShell) :'));
-      console.log(pc.white(`  [Environment]::SetEnvironmentVariable("Path", "${BIN_DIR};" + [Environment]::GetEnvironmentVariable("Path", "User"), "User")`));
     } else {
-      // Unix - Création d'un wrapper bash exécutable
-      const nodeShPath = path.join(BIN_DIR, 'node');
-      const shContent = `#!/bin/sh\nexec "${nodeBinaryPath}" "$@"`;
-      
-      fs.writeFileSync(nodeShPath, shContent, { encoding: 'utf8', mode: 0o755 });
+      fs.writeFileSync(
+        path.join(BIN_DIR, 'node'),
+        `#!/bin/sh\nexec "${nodeBinaryPath}" "$@"\n`,
+        { encoding: 'utf8', mode: 0o755 }
+      );
 
-      console.log(pc.green('✅ Liaisons Unix créées.'));
-      console.log(pc.cyan('\n💡 Pour activer cette version de manière permanente, ajoutez cette ligne à votre ~/.bashrc ou ~/.zshrc :'));
+      const npmCliPath = path.join(versionDir, 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js');
+      if (fs.existsSync(npmCliPath)) {
+        fs.writeFileSync(
+          path.join(BIN_DIR, 'npm'),
+          `#!/bin/sh\nexec "${nodeBinaryPath}" "${npmCliPath}" "$@"\n`,
+          { encoding: 'utf8', mode: 0o755 }
+        );
+      }
+
+      console.log(pc.green('✅ Shims Unix créés.'));
+      console.log(pc.cyan('\n💡 Ajoutez à votre ~/.bashrc ou ~/.zshrc :'));
       console.log(pc.white(`  export PATH="${BIN_DIR}:$PATH"`));
     }
 
-    console.log(pc.green(`\n🚀 flash-dev est configuré pour rediriger 'node' vers la version v${version} ! ✨\n`));
+    const installed = capture(nodeBinaryPath, ['--version'], { timeout: 5000 });
+    if (installed) {
+      console.log(pc.green(`\n🚀 Node ${installed} prêt.\n`));
+    } else {
+      console.log(pc.yellow('\n⚠️  Binaire installé mais non exécutable sur cette plateforme.\n'));
+    }
 
+    return 0;
   } catch (error) {
-    console.log(pc.red(`\n❌ Une erreur inattendue est survenue : ${error.message}\n`));
-    process.exit(1);
+    console.log(pc.red(`\n❌ Erreur : ${error.message}\n`));
+    process.exitCode = 1;
+    return 1;
   }
 }
 
 module.exports = nodeSwitchCommand;
+module.exports.normalizeVersion = normalizeVersion;
+module.exports.resolveArch = resolveArch;

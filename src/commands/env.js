@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const pc = require('picocolors');
+const prompts = require('prompts');
 
 
 const SENSITIVE_PATTERNS = [
@@ -51,7 +52,7 @@ function isSensitiveVariable(key, value) {
 }
 
 
-async function envCommand() {
+async function envCommand(options = {}) {
   try {
     console.log(pc.cyan('flash-dev env - Générateur de .env.example\n'));
     
@@ -65,6 +66,24 @@ async function envCommand() {
       process.exit(1);
     }
     
+    // The previous version clobbered a hand-written .env.example without asking
+    if (fs.existsSync(envExamplePath) && !options.force) {
+      const { overwrite } = await prompts({
+        type: 'confirm',
+        name: 'overwrite',
+        message: '.env.example existe déjà. L\'écraser ?',
+        initial: false
+      });
+
+      if (!overwrite) {
+        console.log(pc.yellow('\nOpération annulée — .env.example conservé.\n'));
+        return 0;
+      }
+
+      fs.copyFileSync(envExamplePath, `${envExamplePath}.bak`);
+      console.log(pc.gray('Sauvegarde créée: .env.example.bak'));
+    }
+
     console.log(pc.yellow('Analyse du fichier .env...'));
     
     

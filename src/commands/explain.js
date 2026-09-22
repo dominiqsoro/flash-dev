@@ -179,9 +179,7 @@ ${errorText}`;
 
   } catch (error) {
     console.log(pc.red(`\n❌ Erreur lors de l'analyse: ${error.message}\n`));
-    if (config.isVerbose()) {
-      console.log(error.stack);
-    }
+    logger.debug('Trace complète', { stack: error.stack });
     throw error;
   }
 }

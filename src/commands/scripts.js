@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const pc = require('picocolors');
 const prompts = require('prompts');
-const { execSync } = require('child_process');
+const { inherit } = require('../utils/exec');
 
 
 async function scriptsCommand() {
@@ -53,12 +53,14 @@ async function scriptsCommand() {
     const selectedScript = response.scriptName;
     console.log(pc.cyan(`\n🚀 Lancement de : ${pc.bold('npm run ' + selectedScript)}\n`));
 
-    try {
-      execSync(`npm run ${selectedScript}`, { stdio: 'inherit' });
+    // argv form: a script name containing shell metacharacters stays inert
+    const result = inherit('npm', ['run', selectedScript]);
+
+    if (result.ok) {
       console.log(pc.green(`\n✅ Script "${selectedScript}" exécuté avec succès !\n`));
-    } catch (err) {
-      console.log(pc.red(`\n❌ Échec de l'exécution du script.`));
-      process.exit(1);
+    } else {
+      console.log(pc.red(`\n❌ Le script "${selectedScript}" a échoué (code ${result.status}).\n`));
+      process.exitCode = result.status || 1;
     }
   } catch (error) {
     console.log(pc.red(`\n❌ Une erreur inattendue est survenue : ${error.message}\n`));

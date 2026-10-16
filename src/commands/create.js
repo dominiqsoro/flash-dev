@@ -2,28 +2,78 @@ const fs = require('fs');
 const path = require('path');
 const pc = require('picocolors');
 const prompts = require('prompts');
-const { execSync } = require('child_process');
+const { ValidationError } = require('../core/errors');
+const { inherit } = require('../utils/exec');
+
+/** Project names are used as directory names and CLI arguments. */
+const PROJECT_NAME_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,213}$/;
+/** Versions are forwarded to package managers; keep them to semver-ish tokens. */
+const VERSION_RE = /^[0-9][0-9a-zA-Z.\-]*$/;
 
 const FRAMEWORK_MAP = {
   next: {
     name: 'Next.js',
-    officialCmd: (name, ver) => `npx create-next-app@${ver || 'latest'} ${name}`,
+    // argv arrays only — nothing is ever handed to a shell
+    command: (name, ver) => ({ file: 'npx', args: [`create-next-app@${ver || 'latest'}`, name] }),
     extraPackages: ['prettier', 'eslint-config-prettier'],
     setupGit: true
   },
   laravel: {
     name: 'Laravel',
-    officialCmd: (name, ver) => `composer create-project laravel/laravel:${ver || '*'} ${name}`,
+    command: (name, ver) => ({
+      file: 'composer',
+      args: ['create-project', `laravel/laravel:${ver || '*'}`, name]
+    }),
     extraPackages: [],
     setupGit: true
   },
   vue: {
     name: 'Vue.js',
-    officialCmd: (name, ver) => `npm create vue@${ver || 'latest'} -- ${name} --default`,
+    command: (name, ver) => ({ file: 'npm', args: ['create', `vue@${ver || 'latest'}`, '--', name, '--default'] }),
     extraPackages: ['prettier'],
     setupGit: true
   }
 };
+
+/**
+ * Validate a project name before it becomes a directory and a CLI argument.
+ * @param {string} name
+ * @returns {string}
+ * @throws {Error}
+ */
+function validateProjectName(name) {
+  const candidate = String(name || '').trim();
+
+  if (!PROJECT_NAME_RE.test(candidate)) {
+    throw new ValidationError(
+      `Nom de projet invalide: "${name}". Lettres, chiffres, point, tiret et underscore uniquement.`,
+      'Exemple valide: flash-dev create next mon-app'
+    );
+  }
+
+  if (candidate === '.' || candidate === '..') {
+    throw new ValidationError('Le nom de projet ne peut pas être "." ou "..".');
+  }
+
+  return candidate;
+}
+
+/**
+ * Validate an optional framework version token.
+ * @param {string} version
+ * @returns {string}
+ * @throws {Error}
+ */
+function validateVersion(version) {
+  const candidate = String(version || '').trim();
+  if (!candidate) return '';
+
+  if (!VERSION_RE.test(candidate)) {
+    throw new ValidationError(`Version invalide: "${version}". Exemple attendu: 14.2.3`);
+  }
+
+  return candidate;
+}
 
 /**
  * Commande: create <framework> [project-name]
@@ -80,6 +130,9 @@ async function createCommand(frameworkArg, projectNameArg) {
         initial: `my-${framework}-app`,
         validate: (val) => {
           if (!val || val.trim() === '') return 'Le nom du projet ne peut pas être vide';
+          if (!PROJECT_NAME_RE.test(val.trim())) {
+            return 'Lettres, chiffres, point, tiret et underscore uniquement';
+          }
           // Éviter d'écraser un dossier existant non vide
           const targetDir = path.join(process.cwd(), val.trim());
           if (fs.existsSync(targetDir) && fs.readdirSync(targetDir).length > 0) {
@@ -97,19 +150,21 @@ async function createCommand(frameworkArg, projectNameArg) {
       projectName = response.inputName.trim();
     }
 
+    projectName = validateProjectName(projectName);
+    version = validateVersion(version);
+
     const config = FRAMEWORK_MAP[framework];
     console.log(pc.cyan(`\n🚀 Initialisation du projet ${pc.bold(config.name)} dans : ${pc.bold(projectName)}...`));
 
-    const finalCmd = config.officialCmd(projectName, version);
-    console.log(pc.gray(`Command : ${finalCmd}\n`));
+    const { file, args } = config.command(projectName, version);
+    console.log(pc.gray(`Commande : ${file} ${args.join(' ')}\n`));
 
-    // Étape 3 : Bootstrap via execSync
-    try {
-      execSync(finalCmd, { stdio: 'inherit', shell: true });
-    } catch (err) {
-      console.log(pc.red(`\n❌ Échec du bootstrap du projet via la commande officielle.`));
-      console.log(pc.gray(`Détails: ${err.message}`));
-      process.exit(1);
+    // Étape 3 : bootstrap (argv, aucun shell)
+    if (!inherit(file, args).ok) {
+      console.log(pc.red(`\n❌ Échec du bootstrap via "${file}".`));
+      console.log(pc.cyan(`   Vérifiez que "${file}" est installé et accessible dans le PATH.`));
+      process.exitCode = 1;
+      return 1;
     }
 
     // Se déplacer dans le dossier créé
@@ -126,14 +181,11 @@ async function createCommand(frameworkArg, projectNameArg) {
     if (config.extraPackages && config.extraPackages.length > 0) {
       console.log(pc.yellow(`\n📦 Installation des packages supplémentaires de l'équipe : ${pc.bold(config.extraPackages.join(', '))}...`));
       
-      let installCmd = '';
       if (fs.existsSync('package.json')) {
-        installCmd = `npm install --save-dev ${config.extraPackages.join(' ')}`;
-        try {
-          execSync(installCmd, { stdio: 'inherit' });
+        if (inherit('npm', ['install', '--save-dev', ...config.extraPackages]).ok) {
           console.log(pc.green('✅ Packages de l\'équipe installés.'));
-        } catch (err) {
-          console.log(pc.yellow(`⚠️  Impossible d'installer les packages supplémentaires : ${err.message}`));
+        } else {
+          console.log(pc.yellow('⚠️  Impossible d\'installer les packages supplémentaires.'));
         }
       }
     }
@@ -160,26 +212,21 @@ async function createCommand(frameworkArg, projectNameArg) {
     // Étape 6 : Initialisation de Git et premier commit
     if (config.setupGit) {
       console.log(pc.yellow('\n🔧 Initialisation du dépôt Git local...'));
-      try {
-        // Tenter d'initialiser git
-        execSync('git init -b main', { stdio: 'ignore' });
-      } catch (e) {
-        try {
-          execSync('git init', { stdio: 'ignore' });
-        } catch (err) {
-          console.log(pc.yellow(`⚠️  Impossible d'initialiser Git : ${err.message}`));
-        }
-      }
+      const initialized =
+        inherit('git', ['init', '-b', 'main']).ok || inherit('git', ['init']).ok;
 
-      if (fs.existsSync('.git')) {
-        try {
-          // Création du premier commit
-          execSync('git add .', { stdio: 'ignore' });
-          execSync('git commit -m "chore: initial commit by flash-dev"', { stdio: 'ignore' });
-          console.log(pc.green('✅ Dépôt Git initialisé et premier commit créé !'));
-        } catch (err) {
-          console.log(pc.yellow(`⚠️  Impossible de réaliser le premier commit automatique : ${err.message}`));
-        }
+      if (!initialized) {
+        console.log(pc.yellow('⚠️  Impossible d\'initialiser Git.'));
+      } else if (fs.existsSync('.git')) {
+        const committed =
+          inherit('git', ['add', '.']).ok &&
+          inherit('git', ['commit', '-m', 'chore: initial commit by flash-dev']).ok;
+
+        console.log(
+          committed
+            ? pc.green('✅ Dépôt Git initialisé et premier commit créé !')
+            : pc.yellow('⚠️  Dépôt initialisé, mais le premier commit a échoué (identité Git configurée ?).')
+        );
       }
     }
 
@@ -200,3 +247,5 @@ async function createCommand(frameworkArg, projectNameArg) {
 }
 
 module.exports = createCommand;
+module.exports.validateProjectName = validateProjectName;
+module.exports.validateVersion = validateVersion;

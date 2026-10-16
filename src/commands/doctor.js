@@ -21,9 +21,12 @@ async function doctorCommand() {
   });
 
   try {
-    console.log(pc.cyan('\n🔬 Flash-dev Doctor - Diagnostic de l\'environnement\n'));
+    if (!config.isJson()) {
+      console.log(pc.cyan('\n🔬 Flash-dev Doctor - Diagnostic de l\'environnement\n'));
+    }
 
     // Sequential probes avoid Windows hangs when many CLIs spawn at once
+    logger.debug('Sondes de diagnostic séquentielles démarrées');
     const git = await new GitDetector().detect();
     const node = await new NodeDetector().detect();
     const docker = await new DockerDetector().detect();
@@ -240,9 +243,7 @@ async function doctorCommand() {
 
   } catch (error) {
     console.log(pc.red(`\n❌ Erreur lors du diagnostic: ${error.message}\n`));
-    if (config.isVerbose()) {
-      console.log(error.stack);
-    }
+    logger.debug('Trace complète', { stack: error.stack });
     throw error;
   }
 }

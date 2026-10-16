@@ -1,55 +1,57 @@
 const fs = require('fs');
 const path = require('path');
 const pc = require('picocolors');
-const { execSync } = require('child_process');
+const { run } = require('../../utils/exec');
 
 /**
- * Commande: laravel fresh
- * Nettoie et optimise l'application Laravel
+ * flash-dev laravel fresh — clear every Laravel cache and refresh the autoloader.
+ * @returns {number} exit code
  */
 function freshCommand() {
-  try {
-    // Vérifie si le fichier 'artisan' existe à la racine du projet
-    const artisanPath = path.join(process.cwd(), 'artisan');
-    if (!fs.existsSync(artisanPath)) {
-      console.log(pc.red(pc.bold('Erreur : ')) + pc.yellow('Ce dossier n\'est pas un projet Laravel valide (fichier artisan introuvable).'));
-      process.exit(1);
-    }
-
-    console.log(pc.cyan(`\n🧹 Nettoyage et optimisation de l'application Laravel...\n`));
-
-    const commands = [
-      'php artisan cache:clear',
-      'php artisan config:clear',
-      'php artisan route:clear',
-      'php artisan view:clear',
-      'composer dump-autoload'
-    ];
-
-    const totalSteps = commands.length;
-    
-    
-    for (let i = 0; i < totalSteps; i++) {
-      const progress = Math.round(((i + 1) / totalSteps) * 100);
-      const bar = '█'.repeat(Math.floor(progress / 5)) + '░'.repeat(20 - Math.floor(progress / 5));
-      process.stdout.write(`\r${pc.cyan('Progression:')} ${pc.green(bar)} ${progress}%`);
-      
-      try {
-        execSync(commands[i], { stdio: 'ignore' });
-      } catch (err) {
-        process.stdout.write('\n');
-        console.log(pc.red(`\n❌ Échec de l'étape : ${commands[i]}`));
-        console.log(pc.red(`Détails: ${err.message}`));
-        process.exit(1);
-      }
-    }
-
-    process.stdout.write('\r' + ' '.repeat(50) + '\r');
-    console.log(pc.green(`\n✨ Application Laravel nettoyée et optimisée avec succès ! ✨\n`));
-  } catch (error) {
-    console.log(pc.red(`\n❌ Une erreur inattendue est survenue : ${error.message}`));
-    process.exit(1);
+  if (!fs.existsSync(path.join(process.cwd(), 'artisan'))) {
+    console.log(pc.red('Erreur : ') + pc.yellow('projet Laravel introuvable (fichier artisan absent).'));
+    process.exitCode = 1;
+    return 1;
   }
+
+  console.log(pc.cyan('\n🧹 Nettoyage de l\'application Laravel\n'));
+
+  const steps = [
+    { file: 'php', args: ['artisan', 'cache:clear'], label: 'Cache applicatif', required: true },
+    { file: 'php', args: ['artisan', 'config:clear'], label: 'Cache de configuration', required: true },
+    { file: 'php', args: ['artisan', 'route:clear'], label: 'Cache de routes', required: true },
+    { file: 'php', args: ['artisan', 'view:clear'], label: 'Vues compilées', required: true },
+    { file: 'php', args: ['artisan', 'event:clear'], label: 'Cache d\'événements', required: false },
+    { file: 'composer', args: ['dump-autoload', '--optimize'], label: 'Autoloader Composer', required: false }
+  ];
+
+  let failed = 0;
+
+  for (const [index, step] of steps.entries()) {
+    const progress = Math.round(((index + 1) / steps.length) * 100);
+    process.stdout.write(`\r${pc.cyan('Progression:')} ${progress}%  ${step.label.padEnd(28)}`);
+
+    const result = run(step.file, step.args, { timeout: 120000 });
+
+    if (!result.ok) {
+      process.stdout.write('\r' + ' '.repeat(60) + '\r');
+
+      if (step.required) {
+        console.log(pc.red(`\n❌ Échec : ${step.label}`));
+        console.log(pc.gray((result.stderr || result.stdout || '').trim().split('\n')[0] || ''));
+        process.exitCode = 1;
+        return 1;
+      }
+
+      failed += 1;
+      console.log(pc.yellow(`⚠️  Ignoré : ${step.label} (indisponible sur ce projet)`));
+    }
+  }
+
+  process.stdout.write('\r' + ' '.repeat(60) + '\r');
+  console.log(pc.green(`✨ Application Laravel nettoyée (${steps.length - failed}/${steps.length} étapes).\n`));
+
+  return 0;
 }
 
 module.exports = freshCommand;

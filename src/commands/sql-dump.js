@@ -1,313 +1,197 @@
 const fs = require('fs');
 const path = require('path');
 const pc = require('picocolors');
-const { execSync } = require('child_process');
+const { run, ok } = require('../utils/exec');
+const { readEnvFile } = require('../utils/dotenv');
+const { ValidationError } = require('../core/errors');
 
+const MYSQL_DRIVERS = new Set(['mysql', 'mysqli', 'mariadb', 'mysql2']);
+const PGSQL_DRIVERS = new Set(['pgsql', 'postgres', 'postgresql']);
 
-function sqlDumpCommand() {
-  try {
+/**
+ * Build the dump argv for the detected driver.
+ * The password is NEVER placed on the command line — it goes through the
+ * environment, so it cannot be read from `ps aux` by other local users.
+ * @param {object} config
+ * @param {boolean} viaDocker
+ * @returns {{file: string, args: string[], env: Record<string,string>}}
+ */
+function buildDumpCommand(config, viaDocker) {
+  const { driver, host, port, database, username, password, service } = config;
 
-    console.log(
-      pc.cyan('\n🗄️  Sauvegarde de la base de données locale...\n')
+  let file;
+  let args;
+  const env = {};
+
+  if (MYSQL_DRIVERS.has(driver)) {
+    file = 'mysqldump';
+    args = [
+      '--host', host,
+      '--port', String(port),
+      '--user', username,
+      '--single-transaction',
+      '--quick',
+      '--routines',
+      '--events',
+      '--default-character-set=utf8mb4',
+      database
+    ];
+    if (password) env.MYSQL_PWD = password;
+  } else if (PGSQL_DRIVERS.has(driver)) {
+    file = 'pg_dump';
+    args = [
+      '--host', host,
+      '--port', String(port),
+      '--username', username,
+      '--no-password',
+      '--format=plain',
+      database
+    ];
+    if (password) env.PGPASSWORD = password;
+  } else {
+    throw new ValidationError(
+      `SGBD "${driver}" non supporté (attendu: mysql, mariadb, pgsql).`,
+      'Renseignez DB_CONNECTION=mysql ou DB_CONNECTION=pgsql dans votre .env'
     );
-
-
-    const envPath = path.join(process.cwd(), '.env');
-
-    if (!fs.existsSync(envPath)) {
-
-      console.log(
-        pc.red(pc.bold('Erreur : ')) +
-        pc.yellow('Fichier .env introuvable dans le dossier actuel.')
-      );
-
-      console.log(
-        pc.cyan(
-          'Cette commande doit être exécutée à la racine d\'un projet contenant un fichier .env.'
-        )
-      );
-
-      process.exit(1);
-    }
-
-
-    console.log(pc.yellow('Parsing du fichier .env...'));
-
-
-    const envContent = fs.readFileSync(envPath, 'utf8');
-    const envLines = envContent.split(/\r?\n/);
-
-    const config = {};
-
-
-    for (const line of envLines) {
-
-      const trimmed = line.trim();
-
-      if (!trimmed || trimmed.startsWith('#')) {
-        continue;
-      }
-
-
-      const separatorIndex = trimmed.indexOf('=');
-
-      if (separatorIndex === -1) {
-        continue;
-      }
-
-
-      const key = trimmed
-        .substring(0, separatorIndex)
-        .trim();
-
-
-      let val = trimmed
-        .substring(separatorIndex + 1)
-        .trim();
-
-
-      if (
-        (val.startsWith('"') && val.endsWith('"')) ||
-        (val.startsWith("'") && val.endsWith("'"))
-      ) {
-        val = val.slice(1, -1);
-      }
-
-
-      config[key] = val;
-    }
-
-
-
-    const connection = config.DB_CONNECTION || 'mysql';
-    const host = config.DB_HOST || '127.0.0.1';
-    const port =
-      config.DB_PORT ||
-      (connection === 'pgsql' ? '5432' : '3306');
-
-    const database = config.DB_DATABASE;
-    const username = config.DB_USERNAME;
-    const password = config.DB_PASSWORD || '';
-
-
-
-    if (!database || !username) {
-
-      console.log(
-        pc.red(pc.bold('Erreur : ')) +
-        pc.yellow(
-          'Les variables DB_DATABASE et DB_USERNAME doivent être spécifiées dans le .env.'
-        )
-      );
-
-      process.exit(1);
-    }
-
-
-
-    console.log(pc.cyan('Configuration détectée :'));
-
-    console.log(
-      pc.gray(`  SGBD        : ${connection}`)
-    );
-
-    console.log(
-      pc.gray(`  Hôte        : ${host}:${port}`)
-    );
-
-    console.log(
-      pc.gray(`  Base        : ${database}`)
-    );
-
-    console.log(
-      pc.gray(`  Utilisateur : ${username}`)
-    );
-
-
-
-    const dumpFile =
-      `dump_${database}_${Date.now()}.sql`;
-
-
-    const hasDockerCompose =
-      fs.existsSync(
-        path.join(process.cwd(), 'docker-compose.yml')
-      ) ||
-      fs.existsSync(
-        path.join(process.cwd(), 'docker-compose.yaml')
-      );
-
-
-
-    let dumpCommand = '';
-
-    const envOpts = {
-      ...process.env
-    };
-
-
-
-    if (hasDockerCompose) {
-
-
-      console.log(
-        pc.yellow(
-          '\n🐳 Environnement Docker détecté. Tentative de dump via Docker Compose...'
-        )
-      );
-
-
-      if (connection === 'mysql') {
-
-
-        const passArg =
-          password ? `-p"${password}"` : '';
-
-
-        dumpCommand =
-          `docker compose exec -T db mysqldump -u"${username}" ${passArg} "${database}" > "${dumpFile}"`;
-
-
-      } else if (
-        connection === 'pgsql' ||
-        connection === 'postgresql'
-      ) {
-
-
-        dumpCommand =
-          `docker compose exec -T db pg_dump -U "${username}" -d "${database}" > "${dumpFile}"`;
-
-
-      } else {
-
-
-        console.log(
-          pc.red(
-            `SGBD "${connection}" non supporté via Docker.`
-          )
-        );
-
-        process.exit(1);
-      }
-
-
-
-    } else {
-
-
-      console.log(
-        pc.yellow(
-          '\n🖥️  Environnement local détecté. Utilisation des commandes natives...'
-        )
-      );
-
-
-
-      if (connection === 'mysql') {
-
-
-        const passArg =
-          password ? `-p"${password}"` : '';
-
-
-        dumpCommand =
-          `mysqldump -h "${host}" -P "${port}" -u "${username}" ${passArg} "${database}" > "${dumpFile}"`;
-
-
-
-      } else if (
-        connection === 'pgsql' ||
-        connection === 'postgresql'
-      ) {
-
-
-        dumpCommand =
-          `pg_dump -h "${host}" -p "${port}" -U "${username}" "${database}" > "${dumpFile}"`;
-
-
-
-      } else {
-
-
-        console.log(
-          pc.red(
-            `SGBD "${connection}" non supporté.`
-          )
-        );
-
-        process.exit(1);
-
-      }
-
-    }
-
-
-
-    console.log(
-      pc.yellow('\n🚀 Exécution de la sauvegarde...')
-    );
-
-
-
-    try {
-
-
-      execSync(dumpCommand, {
-
-        stdio: 'inherit',
-
-        env: {
-          ...envOpts,
-
-          MYSQL_PWD: password,
-
-          PGPASSWORD: password
-        }
-
-      });
-
-
-
-      console.log(
-        pc.green(
-          `\n✅ Dump créé avec succès : ${dumpFile}\n`
-        )
-      );
-
-
-
-    } catch (error) {
-
-
-      console.log(
-        pc.red(
-          `\n❌ Échec du dump : ${error.message}\n`
-        )
-      );
-
-
-      process.exit(1);
-
-    }
-
-
-
-  } catch (error) {
-
-
-    console.log(
-      pc.red(
-        `\n❌ Une erreur inattendue est survenue : ${error.message}\n`
-      )
-    );
-
-
-    process.exit(1);
-
   }
 
+  if (viaDocker) {
+    // `docker compose exec -T <service> <binary> <args...>` — still argv, no shell
+    const dockerEnvArgs = Object.keys(env).flatMap((key) => ['--env', `${key}=${env[key]}`]);
+    return {
+      file: 'docker',
+      args: ['compose', 'exec', '-T', ...dockerEnvArgs, service, file, ...args],
+      env: {}
+    };
+  }
+
+  return { file, args, env };
 }
 
+/**
+ * flash-dev sql-dump — back up the local database described by .env
+ * @param {object} [options]
+ * @param {string} [options.output] explicit output file
+ * @param {string} [options.service] docker compose service name
+ * @returns {number} exit code
+ */
+function sqlDumpCommand(options = {}) {
+  console.log(pc.cyan('\n🗄️  Sauvegarde de la base de données locale\n'));
 
+  const envPath = path.join(process.cwd(), '.env');
+
+  if (!fs.existsSync(envPath)) {
+    console.log(pc.red('Erreur : ') + pc.yellow('fichier .env introuvable.'));
+    console.log(pc.cyan('Lancez cette commande à la racine d\'un projet contenant un .env.\n'));
+    process.exitCode = 1;
+    return 1;
+  }
+
+  const env = readEnvFile(envPath);
+
+  const driver = (env.DB_CONNECTION || env.DB_DRIVER || 'mysql').toLowerCase();
+  const isPg = PGSQL_DRIVERS.has(driver);
+
+  const config = {
+    driver,
+    host: env.DB_HOST || '127.0.0.1',
+    port: env.DB_PORT || (isPg ? '5432' : '3306'),
+    database: env.DB_DATABASE || env.DB_NAME,
+    username: env.DB_USERNAME || env.DB_USER,
+    password: env.DB_PASSWORD || env.DB_PASS || '',
+    service: options.service || env.DB_SERVICE || 'db'
+  };
+
+  if (!config.database || !config.username) {
+    console.log(pc.red('Erreur : ') + pc.yellow('DB_DATABASE et DB_USERNAME sont requis dans le .env.'));
+    process.exitCode = 1;
+    return 1;
+  }
+
+  // Never echo the password back to the terminal
+  console.log(pc.cyan('Configuration détectée :'));
+  console.log(pc.gray(`  SGBD        : ${config.driver}`));
+  console.log(pc.gray(`  Hôte        : ${config.host}:${config.port}`));
+  console.log(pc.gray(`  Base        : ${config.database}`));
+  console.log(pc.gray(`  Utilisateur : ${config.username}`));
+  console.log(pc.gray(`  Mot de passe: ${config.password ? '(fourni, transmis hors ligne de commande)' : '(aucun)'}`));
+
+  const hasCompose =
+    fs.existsSync(path.join(process.cwd(), 'docker-compose.yml')) ||
+    fs.existsSync(path.join(process.cwd(), 'docker-compose.yaml')) ||
+    fs.existsSync(path.join(process.cwd(), 'compose.yml'));
+
+  const viaDocker = hasCompose && ok('docker', ['compose', 'version'], { timeout: 3000 });
+
+  let dump;
+  try {
+    dump = buildDumpCommand(config, viaDocker);
+  } catch (error) {
+    console.log(pc.red(`\n❌ ${error.message}\n`));
+    process.exitCode = 1;
+    return 1;
+  }
+
+  console.log(
+    viaDocker
+      ? pc.yellow(`\n🐳 Docker Compose détecté — dump via le service "${config.service}".`)
+      : pc.yellow('\n🖥️  Utilisation des binaires locaux.')
+  );
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const dumpFile = options.output || `dump_${config.database}_${timestamp}.sql`;
+  const dumpPath = path.resolve(process.cwd(), dumpFile);
+
+  if (fs.existsSync(dumpPath)) {
+    console.log(pc.red(`\n❌ Le fichier ${dumpFile} existe déjà — annulation.\n`));
+    process.exitCode = 1;
+    return 1;
+  }
+
+  console.log(pc.yellow('\n🚀 Exécution de la sauvegarde...'));
+
+  let outputFd;
+  try {
+    outputFd = fs.openSync(dumpPath, 'wx', 0o600);
+  } catch (error) {
+    console.log(pc.red(`\n❌ Impossible de créer ${dumpFile} : ${error.message}\n`));
+    process.exitCode = 1;
+    return 1;
+  }
+
+  const result = run(dump.file, dump.args, {
+    timeout: 600000,
+    env: { ...process.env, ...dump.env },
+    stdio: ['ignore', outputFd, 'pipe'],
+    capture: false
+  });
+
+  try { fs.closeSync(outputFd); } catch { /* already closed */ }
+
+  if (!result.ok) {
+    const detail = result.error ? result.error.message : `code ${result.status}`;
+    try { fs.unlinkSync(dumpPath); } catch { /* best effort */ }
+
+    console.log(pc.red(`\n❌ Échec du dump (${detail}).`));
+    console.log(pc.cyan(`   Vérifiez que "${dump.file}" est installé et que les identifiants sont valides.\n`));
+    process.exitCode = 1;
+    return 1;
+  }
+
+  const stats = fs.statSync(dumpPath);
+  if (stats.size === 0) {
+    fs.unlinkSync(dumpPath);
+    console.log(pc.red('\n❌ Le dump est vide — sauvegarde supprimée.\n'));
+    process.exitCode = 1;
+    return 1;
+  }
+
+  console.log(pc.green(`\n✅ Dump créé : ${dumpFile}`));
+  console.log(pc.gray(`   Taille : ${(stats.size / 1024).toFixed(1)} Ko · permissions 600`));
+  console.log(pc.yellow('\n⚠️  Ce fichier contient vos données — ne le committez pas.\n'));
+
+  return 0;
+}
 
 module.exports = sqlDumpCommand;
+module.exports.buildDumpCommand = buildDumpCommand;

@@ -6,8 +6,9 @@
 const pc = require('picocolors');
 const Logger = require('../core/logger');
 const config = require('../core/config');
-const { execSync } = require('child_process');
+const { run, inherit } = require('../utils/exec');
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const path = require('path');
 const prompts = require('prompts');
 
@@ -19,13 +20,16 @@ async function fixCommand() {
   });
 
   try {
-    console.log(pc.cyan('\n🔧 Flash-dev Fix - Auto-correction du code\n'));
+    if (!config.isJson()) {
+      console.log(pc.cyan('\n🔧 Flash-dev Fix - Auto-correction du code\n'));
+    }
 
+    logger.debug('Détection des outils de correction démarrée');
     const fixes = [];
     const backupDir = path.join(process.cwd(), '.flash-dev-backup');
 
     // Créer le dossier de backup
-    if (!fs.existsSync(backupDir)) {
+    if (!fsSync.existsSync(backupDir)) {
       await fs.mkdir(backupDir, { recursive: true });
     }
 
@@ -38,11 +42,8 @@ async function fixCommand() {
     if (hasEslint) {
       console.log(pc.yellow('🔍 Détection ESLint...'));
       try {
-        const eslintOutput = execSync('npx eslint . --format json', { 
-          encoding: 'utf-8', 
-          stdio: 'pipe' 
-        });
-        const eslintResults = JSON.parse(eslintOutput);
+        const eslintRun = run('npx', ['eslint', '.', '--format', 'json'], { timeout: 180000 });
+        const eslintResults = JSON.parse(eslintRun.stdout || '[]');
         const errorCount = eslintResults.reduce((sum, file) => sum + file.errorCount, 0);
         const warningCount = eslintResults.reduce((sum, file) => sum + file.warningCount, 0);
         
@@ -79,8 +80,9 @@ async function fixCommand() {
     if (hasTsConfig) {
       console.log(pc.yellow('🔍 Détection TypeScript...'));
       try {
-        execSync('npx tsc --noEmit', { stdio: 'pipe' });
-        // Pas d'erreurs TypeScript
+        if (!run('npx', ['tsc', '--noEmit'], { timeout: 300000 }).ok) {
+          throw new Error('type errors');
+        }
       } catch (error) {
         fixes.push({
           tool: 'TypeScript',
@@ -91,13 +93,7 @@ async function fixCommand() {
     }
 
     // Imports (via ESLint ou simple heuristique)
-    if (hasEslint) {
-      fixes.push({
-        tool: 'Imports',
-        description: 'Organisation des imports',
-        fixable: true
-      });
-    }
+
 
     if (config.isJson()) {
       console.log(JSON.stringify(fixes, null, 2));
@@ -159,11 +155,10 @@ async function fixCommand() {
     // ESLint --fix
     if (hasEslint) {
       console.log(pc.cyan('  ESLint --fix...'));
-      try {
-        execSync('npx eslint . --fix', { stdio: 'inherit' });
+      if (inherit('npx', ['eslint', '.', '--fix'], { timeout: 300000 }).ok) {
         console.log(pc.green('  ✅ ESLint corrigé'));
         appliedCount++;
-      } catch (error) {
+      } else {
         console.log(pc.yellow('  ⚠️  ESLint: certaines corrections nécessitent une intervention manuelle'));
       }
     }
@@ -171,26 +166,17 @@ async function fixCommand() {
     // Prettier --write
     if (hasPrettier) {
       console.log(pc.cyan('  Prettier --write...'));
-      try {
-        execSync('npx prettier --write .', { stdio: 'inherit' });
+      if (inherit('npx', ['prettier', '--write', '.'], { timeout: 300000 }).ok) {
         console.log(pc.green('  ✅ Prettier appliqué'));
         appliedCount++;
-      } catch (error) {
+      } else {
         console.log(pc.yellow('  ⚠️  Prettier: erreur lors du formatage'));
       }
     }
 
-    // Import organisation (via eslint-plugin-import ou simple)
-    if (hasEslint) {
-      console.log(pc.cyan('  Organisation des imports...'));
-      try {
-        execSync('npx eslint . --fix --rule "import/order: [2, {groups: [[\'builtin\', \'external\'], [\'internal\], [\'parent\], [\'sibling\'], [\'index\']]}]"', { stdio: 'inherit' });
-        console.log(pc.green('  ✅ Imports organisés'));
-        appliedCount++;
-      } catch (error) {
-        console.log(pc.yellow('  ⚠️  Imports: organisation partielle'));
-      }
-    }
+    // L'organisation des imports est déjà couverte par `eslint --fix`
+    // quand le projet active eslint-plugin-import : inutile de relancer ESLint
+    // avec une règle inline (l'ancienne chaîne était mal échappée et échouait).
 
     console.log();
     console.log(pc.green(`✨ ${appliedCount} correction(s) appliquée(s)!\n`));
@@ -202,9 +188,7 @@ async function fixCommand() {
 
   } catch (error) {
     console.log(pc.red(`\n❌ Erreur lors de la correction: ${error.message}\n`));
-    if (config.isVerbose()) {
-      console.log(error.stack);
-    }
+    logger.debug('Trace complète', { stack: error.stack });
     throw error;
   }
 }

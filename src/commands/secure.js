@@ -1,152 +1,136 @@
-const { execSync } = require('child_process');
 const pc = require('picocolors');
+const { isGitRepository, tryGit } = require('../utils/git');
+const { parseAddedLines } = require('../core/diff-parser');
+const { matchLine, isIgnoredPath, redact } = require('../core/secret-patterns');
 
+const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
 
-const SECURITY_PATTERNS = [
-  {
-    name: 'SSH Private Key',
-    pattern: /-----BEGIN\s+RSA\s+PRIVATE\s+KEY-----/i,
-    severity: 'critical'
-  },
-  {
-    name: 'AWS Access Key',
-    pattern: /AKIA[0-9A-Z]{16}/i,
-    severity: 'critical'
-  },
-  {
-    name: 'AWS Secret Key',
-    pattern: /[0-9a-zA-Z/+]{40}/i,
-    context: /aws[_-]?secret/i,
-    severity: 'critical'
-  },
-  {
-    name: 'Stripe API Key',
-    pattern: /sk_[a-zA-Z0-9]{32,}/i,
-    severity: 'critical'
-  },
-  {
-    name: 'Google API Key',
-    pattern: /AIza[A-Za-z0-9_-]{35}/i,
-    severity: 'high'
-  },
-  {
-    name: 'GitHub Token',
-    pattern: /ghp_[a-zA-Z0-9]{36}/i,
-    severity: 'critical'
-  },
-  {
-    name: 'JWT Token',
-    pattern: /eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/i,
-    severity: 'high'
-  },
-  {
-    name: 'Database Password',
-    pattern: /password\s*[:=]\s*['"][^'"]{8,}['"]/i,
-    severity: 'high'
-  },
-  {
-    name: 'API Key Generic',
-    pattern: /api[_-]?key\s*[:=]\s*['"][\w-]{20,}['"]/i,
-    severity: 'high'
-  },
-  {
-    name: 'Secret Key Generic',
-    pattern: /secret[_-]?key\s*[:=]\s*['"][\w-]{20,}['"]/i,
-    severity: 'high'
-  },
-  {
-    name: 'Private Key Generic',
-    pattern: /private[_-]?key\s*[:=]\s*['"][\w-]{20,}['"]/i,
-    severity: 'critical'
+/**
+ * Audit a unified diff for leaked secrets.
+ * Only ADDED lines are inspected, so deleting a previously leaked key is
+ * never reported as a new leak.
+ * @param {string} diff
+ * @returns {Array<{file: string, line: number, rule: string, severity: string, match: string}>}
+ */
+function auditDiff(diff) {
+  const issues = [];
+
+  for (const added of parseAddedLines(diff)) {
+    if (isIgnoredPath(added.file)) continue;
+
+    for (const finding of matchLine(added.content)) {
+      issues.push({
+        file: added.file,
+        line: added.line,
+        rule: finding.rule,
+        severity: finding.severity,
+        match: finding.match
+      });
+    }
   }
-];
 
-
-function isPatternRelevant(pattern, line, context) {
-  if (pattern.context) {
-    return pattern.context.test(context);
-  }
-  return true;
+  return issues.sort(
+    (a, b) =>
+      (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9) ||
+      a.file.localeCompare(b.file) ||
+      a.line - b.line
+  );
 }
 
+function printIssues(issues, label, colorFn) {
+  if (issues.length === 0) return;
 
-async function secureCommand() {
-  try {
-    console.log(pc.cyan('flash-dev secure - Audit anti-fuite de secrets\n'));
-    
-    
-    let diff;
-    try {
-      diff = execSync('git diff --cached', { encoding: 'utf-8' });
-    } catch (error) {
-      console.log(pc.yellow('Aucun fichier indexé. Utilisation: git add .'));
-      console.log(pc.cyan('Ou lancez flash-dev push pour le workflow complet.\n'));
-      process.exit(0);
-    }
-    
-    if (!diff.trim()) {
-      console.log(pc.green('Aucun changement à auditer. Vous pouvez commiter en toute sécurité.\n'));
-      process.exit(0);
-    }
-    
-    console.log(pc.yellow('Analyse des modifications...\n'));
-    
-    const lines = diff.split('\n');
-    const issues = [];
-    
-    lines.forEach((line, index) => {
-      SECURITY_PATTERNS.forEach(pattern => {
-        if (pattern.pattern.test(line) && isPatternRelevant(pattern, line, diff)) {
-          issues.push({
-            line: index + 1,
-            pattern: pattern.name,
-            severity: pattern.severity,
-            content: line.trim().substring(0, 100) + (line.length > 100 ? '...' : '')
-          });
-        }
-      });
-    });
-    
-    if (issues.length === 0) {
-      console.log(pc.green('Aucun secret détecté. Audit réussi!'));
-      console.log(pc.cyan('Vous pouvez procéder au commit en toute sécurité.\n'));
-      process.exit(0);
-    }
-    
-    
-    console.log(pc.red(`ALERT: ${issues.length} secret(s) potentiel(s) détecté(s)!\n`));
-    
-    const critical = issues.filter(i => i.severity === 'critical');
-    const high = issues.filter(i => i.severity === 'high');
-    
-    if (critical.length > 0) {
-      console.log(pc.red('CRITICAL:'));
-      critical.forEach(issue => {
-        console.log(pc.red(`  Ligne ${issue.line}: ${issue.pattern}`));
-        console.log(pc.gray(`  ${issue.content}\n`));
-      });
-    }
-    
-    if (high.length > 0) {
-      console.log(pc.yellow('HIGH:'));
-      high.forEach(issue => {
-        console.log(pc.yellow(`  Ligne ${issue.line}: ${issue.pattern}`));
-        console.log(pc.gray(`  ${issue.content}\n`));
-      });
-    }
-    
-    console.log(pc.red('\nBLOCAGE: Commit annulé pour protéger vos secrets.'));
-    console.log(pc.cyan('Actions recommandées:'));
-    console.log(pc.cyan('1. Vérifiez les lignes signalées ci-dessus'));
-    console.log(pc.cyan('2. Retirez les valeurs sensibles ou utilisez des variables d\'environnement'));
-    console.log(pc.cyan('3. Réindexez les fichiers avec: git add .\n'));
-    
-    process.exit(1);
-    
-  } catch (error) {
-    console.log(pc.red(`\nErreur: ${error.message}\n`));
-    process.exit(1);
+  console.log(colorFn(`\n${label} (${issues.length})`));
+  for (const issue of issues) {
+    console.log(colorFn(`  ${issue.file}:${issue.line}  ${issue.rule}`));
+    console.log(pc.gray(`    valeur: ${redact(issue.match)}`));
   }
+}
+
+/**
+ * flash-dev secure — pre-commit secret leak audit.
+ * @param {object} [options]
+ * @param {boolean} [options.all] audit the whole tracked tree, not just the index
+ * @param {boolean} [options.json] machine-readable output
+ * @returns {Promise<number>} process exit code
+ */
+async function secureCommand(options = {}) {
+  const asJson = Boolean(options.json);
+
+  if (!asJson) {
+    console.log(pc.cyan('flash-dev secure - Audit anti-fuite de secrets\n'));
+  }
+
+  if (!isGitRepository()) {
+    if (asJson) {
+      console.log(JSON.stringify({ ok: false, reason: 'not_a_git_repository', issues: [] }, null, 2));
+    } else {
+      console.log(pc.red('Ce dossier n\'est pas un dépôt Git.'));
+      console.log(pc.cyan('Initialisez un dépôt avec: git init\n'));
+    }
+    process.exitCode = 1;
+    return 1;
+  }
+
+  // `--all` diffs against the empty tree, i.e. audits every tracked line.
+  const diffResult = options.all
+    ? tryGit(['diff', '--no-color', '4b825dc642cb6eb9a060e54bf8d69288fbee4904'])
+    : tryGit(['diff', '--cached', '--no-color']);
+
+  if (!diffResult.ok) {
+    if (asJson) {
+      console.log(JSON.stringify({ ok: false, reason: 'diff_failed', issues: [] }, null, 2));
+    } else {
+      console.log(pc.yellow('Impossible de lire le diff Git.'));
+      console.log(pc.gray(diffResult.stderr));
+    }
+    process.exitCode = 1;
+    return 1;
+  }
+
+  const diff = diffResult.stdout;
+
+  if (!diff.trim()) {
+    if (asJson) {
+      console.log(JSON.stringify({ ok: true, scanned: 0, issues: [] }, null, 2));
+    } else {
+      console.log(pc.green('Aucun changement indexé à auditer.'));
+      console.log(pc.cyan('Astuce: git add . puis relancez, ou utilisez --all.\n'));
+    }
+    return 0;
+  }
+
+  const issues = auditDiff(diff);
+  const addedCount = parseAddedLines(diff).length;
+
+  if (asJson) {
+    console.log(JSON.stringify({ ok: issues.length === 0, scanned: addedCount, issues }, null, 2));
+    process.exitCode = issues.length === 0 ? 0 : 1;
+    return issues.length === 0 ? 0 : 1;
+  }
+
+  if (issues.length === 0) {
+    console.log(pc.green(`Aucun secret détecté (${addedCount} ligne(s) ajoutée(s) auditée(s)).`));
+    console.log(pc.cyan('Vous pouvez procéder au commit en toute sécurité.\n'));
+    return 0;
+  }
+
+  console.log(pc.red(`${issues.length} secret(s) potentiel(s) détecté(s) sur ${addedCount} ligne(s) ajoutée(s).`));
+
+  printIssues(issues.filter((i) => i.severity === 'critical'), 'CRITIQUE', pc.red);
+  printIssues(issues.filter((i) => i.severity === 'high'), 'ÉLEVÉ', pc.yellow);
+  printIssues(issues.filter((i) => i.severity === 'medium'), 'MOYEN', pc.yellow);
+
+  console.log(pc.red('\nBLOCAGE: commit interrompu pour protéger vos secrets.'));
+  console.log(pc.cyan('Actions recommandées:'));
+  console.log(pc.cyan('  1. Déplacez la valeur dans une variable d\'environnement (.env)'));
+  console.log(pc.cyan('  2. Vérifiez que .env est bien dans votre .gitignore'));
+  console.log(pc.cyan('  3. Si la clé a déjà été poussée, RÉVOQUEZ-LA puis régénérez-la'));
+  console.log(pc.gray('\nFaux positif ? Ajoutez le commentaire "flash-dev-ignore-secret" sur la ligne.\n'));
+
+  process.exitCode = 1;
+  return 1;
 }
 
 module.exports = secureCommand;
+module.exports.auditDiff = auditDiff;
